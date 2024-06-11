@@ -1,0 +1,92 @@
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+body { margin: 0; }
+
+#stage {
+  --cube-size: 16px;
+  display: grid;
+  grid-template-areas:
+    'main aside'
+    'main aside'
+    'main ctrl'
+    'main arrow';
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+  padding-left: 24px;
+  padding-right: 24px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 1em;
+}
+
+main {
+  --rows: 20;
+  --cols: 10;
+  grid-area: main;
+  justify-self: end;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--cube-size));
+  grid-template-rows: repeat((var(--rows), var(--cube-size)));
+  width: calc(var(--cols) * var(--cube-size) + 2px);
+  height: calc(var(--rows) * var(--cube-size) + 2px);
+  border: 1px solid #000;
+}
+
+main>div {
+  width: var(--cube-size);
+  height: var(--cube-size);
+  background-color: #000;
+  outline: 2px solid #fff;
+  outline-offset: -4px;
+  opacity: 0;
+}
+
+aside {
+  --size: calc(4 * var(--cube-size));
+  grid-area: aside;
+  display: flex;
+  flex-direction: column;
+  width: var(--size);
+}
+
+#score { align-self: center; }
+
+#preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: var(--size);
+  height: var(--size);
+  border: 1px solid #000;
+}
+
+#ctrl {
+  align-self: end;
+  height: 28px;
+  vertical-align: top;
+}
+
+#ctrl > svg { vertical-align: -.1em; }
+
+.arrow {
+  grid-area: arrow;
+  place-self: end center;
+  display: grid;
+  place-items: center;
+  grid-template-areas:
+    '.    up   .'
+    'left . right'
+    '.   down  .';
+  /* grid-template-columns: repeat(3,auto);
+      grid-template-rows: repeat(3,auto); */
+  width: max-content;
+}
+
+.arrow > button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+}
