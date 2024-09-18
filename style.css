@@ -5,12 +5,12 @@
 body { margin: 0; }
 
 #stage {
-  --cube-size: 16px;
+  --square-size: 16px;
   display: grid;
   grid-template-areas:
     'main aside'
     'main aside'
-    'main ctrl'
+    'main switch'
     'main arrow';
   gap: 10px;
   width: 100%;
@@ -27,25 +27,30 @@ main {
   --cols: 10;
   grid-area: main;
   justify-self: end;
+  overflow: hidden;
   display: grid;
-  grid-template-columns: repeat(var(--cols), var(--cube-size));
-  grid-template-rows: repeat((var(--rows), var(--cube-size)));
-  width: calc(var(--cols) * var(--cube-size) + 2px);
-  height: calc(var(--rows) * var(--cube-size) + 2px);
+  grid-template-columns: repeat(var(--cols), var(--square-size));
+  grid-template-rows: repeat((var(--rows), var(--square-size)));
+  width: calc(var(--cols) * var(--square-size) + 2px);
+  height: calc(var(--rows) * var(--square-size) + 2px);
   border: 1px solid #000;
 }
 
-main>div {
-  width: var(--cube-size);
-  height: var(--cube-size);
+main > div { --outline-width: 2px; }
+
+:where(main, #predict) > div {
+  width: var(--square-size);
+  height: var(--square-size);
   background-color: #000;
-  outline: 2px solid #fff;
-  outline-offset: -4px;
-  opacity: 0;
+  outline: var(--outline-width) solid #fff;
+  outline-offset: calc(var(--outline-width) * -1 - 2px);
+  opacity: .04;
 }
 
+:where(main, #predict) > div.show { opacity: 1; }
+
 aside {
-  --size: calc(4 * var(--cube-size));
+  --size: calc(4 * var(--square-size));
   grid-area: aside;
   display: flex;
   flex-direction: column;
@@ -54,22 +59,30 @@ aside {
 
 #score { align-self: center; }
 
-#preview {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+#predict {
+  --square-size: 14px;
+  display: grid;
+  grid-template-columns: repeat(4,var(--square-size));
+  grid-template-rows: repeat(4,var(--square-size));
+  /* padding: 4px; */
+  place-content: center;
   width: var(--size);
   height: var(--size);
   border: 1px solid #000;
 }
 
-#ctrl {
+#predict > div {
+  opacity: 1;
+  --outline-width: 1px;
+}
+
+#switch {
   align-self: end;
   height: 28px;
   vertical-align: top;
 }
 
-#ctrl > svg { vertical-align: -.1em; }
+#switch > svg { vertical-align: -.1em; }
 
 .arrow {
   grid-area: arrow;
