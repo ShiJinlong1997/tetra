@@ -1,25 +1,53 @@
+export function useLoops(i, xs) {
+  const indexLimit = { min: 0, max: xs.length - 1 };
+  
+  const readValue = R.compose( R.prop(R.__, xs), R.tap(newIndex => (i = newIndex)) );
+  
+  return {
+    value() {
+      return xs[i];
+    },
+    prev() {
+      return R.compose(
+        readValue,
+        R.when(R.lt(R.__, indexLimit.min), R.always(indexLimit.max)),
+        R.dec
+      )(i);
+    },
+    next() {
+      return R.compose(
+        readValue,
+        R.when(R.gt(R.__, indexLimit.max), R.always(indexLimit.min)),
+        R.inc
+      )(i);
+    },
+  };
+}
+
+export const isInRange = R.curry(
+  (xs, x) => R.allPass([
+    R.compose( R.gte(x), R.head ),
+    R.compose( R.lte(x), R.last ),
+  ])(xs)
+);
+
 export const RndInt = R.curry(
   (min, max) => Math.floor( Math.random() * (max - min) ) + min
 );
 
-export const RndLetter = R.compose(
-  R.converge(R.prop, [
-    R.compose( RndInt(0), R.length ),
-    R.identity
-  ]),
-  R.keys
-);
+/** @type {function(any[]): number} */
+export const RndIndex = R.compose( RndInt(0), R.length );
 
-/**
- * @type {(operate: 'add' | 'remove' | 'contains', token: string[], elem: HTMLDivElement) => void}
- */
-export const operateClassList = R.curry(
-  (operate, tokens, elem) => elem.classList[operate](...tokens)
-);
+/** @type {function<T>(T[]): T} */
+export const RndItem = R.converge(R.prop, [RndIndex, R.identity]);
 
-export const cyclic = (xs, i) => (
-  R.compose(
-    R.ifElse( R.lt(R.__, xs.length), R.identity, R.always(0) ),
-    R.inc
-  )(i)
-);
+/** @type {function(Main.ShapeDic): Main.Letter} */
+export const RndLetter = R.compose( RndItem, R.keys );
+
+/** @typedef {Extract<keyof Set, 'add' | 'delete' | 'has'>} ClassNameOperate */
+
+/** @type {function(Main.MoveTo): { left: -1; right: 1; }[Main.MoveTo]} */
+export const Sign = R.prop(R.__, { left: -1, right: 1 });
+
+/** @type {function(Main.ClassNameSet): string} */
+export const toClassName = R.compose( R.join(' '), Array.from );
