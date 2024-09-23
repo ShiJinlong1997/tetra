@@ -145,11 +145,11 @@ function run() {
     ++state.position.row;
     draw();
     render();
-    gameOver();
     state.toggleShapeStatus();
   } else {
     freeze();
     addScore();
+    gameOver();
     state.toggleShapeStatus();
   }
 }
@@ -160,9 +160,9 @@ function freeze() {
     state.indexList.forEach(index => {
       state.classNameList[index].add('taken')
     });
-    state.init();
-    draw();
-    render();
+    state.reset();
+    // draw();
+    // render();
   }
 }
 
@@ -193,6 +193,10 @@ function addScore() {
     state.classNameList = removed.concat(state.classNameList);
   });
 
+  // freeze() 更新了 indexList 后，消行会让形状下降，所以先别 render()
+  undraw();
+  draw();
+  render();
   state.score += fullRows.length;
   document.getElementById('score').innerText = String(state.score);
 }
@@ -241,7 +245,7 @@ function main() {
     render();
 
     addEventListener('keyup', R.when(
-      // () => R.equals('playing', state.playStatus),
+      () => R.equals('playing', state.playStatus),
       R.T,
       R.compose( R.call, Handler, R.prop('code') )
     ));

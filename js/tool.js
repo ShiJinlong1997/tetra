@@ -4,6 +4,9 @@ export function useLoops(i, xs) {
   const readValue = R.compose( R.prop(R.__, xs), R.tap(newIndex => (i = newIndex)) );
   
   return {
+    reset() {
+      i = 0;
+    },
     value() {
       return xs[i];
     },

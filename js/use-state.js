@@ -66,8 +66,10 @@ export function useState() {
       return IndexList(this);
     },
     classNameList: ClassNameList(game.squaresNum),
-    init() {
+    reset() {
       this.letter = _.RndLetter(shapeDic);
+      angleLoop.reset();
+      this.angle = angleLoop.value();
       this.position.row = 0;
       this.position.col = game.mapSize.col / 2 - 1;
     }
