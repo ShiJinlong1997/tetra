@@ -7,6 +7,9 @@ export const game = {
   get mapSize() {
     return { row: 20, col: 10 };
   },
+  get predictSize() {
+    return { row: 4, col: 4 };
+  },
   /** 实际的方块数 */
   get squaresNum() {
     return (this.mapSize.row + 1) * this.mapSize.col;
@@ -18,6 +21,10 @@ export const game = {
   /** @type {HTMLDivElement[]} */
   get squares() {
     return Array.from(this.mainElem.children);
+  },
+  /** @type {HTMLSpanElement} */
+  get scoreElem() {
+    return document.getElementById('score');
   },
   /** @type {HTMLDivElement} */
   get predictElem() {
@@ -33,33 +40,42 @@ export const game = {
   },
 };
 
-export const shapeDic = {
+/** @param {number} colNum */
+export const genShapeDic = colNum => ({
   L: [
-    [1,game.mapSize.col+1,game.mapSize.col*2+1,2],
-    [game.mapSize.col,game.mapSize.col+1,game.mapSize.col+2,game.mapSize.col*2+2],
-    [1,game.mapSize.col+1,game.mapSize.col*2+1,game.mapSize.col*2],
-    [game.mapSize.col,game.mapSize.col*2,game.mapSize.col*2+1,game.mapSize.col*2+2],
+    [1,colNum+1,colNum*2+1,2],
+    [colNum,colNum+1,colNum+2,colNum*2+2],
+    [1,colNum+1,colNum*2+1,colNum*2],
+    [colNum,colNum*2,colNum*2+1,colNum*2+2],
   ],
   Z: [
-    [0,game.mapSize.col,game.mapSize.col+1,game.mapSize.col*2+1],
-    [game.mapSize.col+1,game.mapSize.col+2,game.mapSize.col*2,game.mapSize.col*2+1],
-    [0,game.mapSize.col,game.mapSize.col+1,game.mapSize.col*2+1],
-    [game.mapSize.col+1,game.mapSize.col+2,game.mapSize.col*2,game.mapSize.col*2+1],
+    [0,colNum,colNum+1,colNum*2+1],
+    [colNum+1,colNum+2,colNum*2,colNum*2+1],
+    [0,colNum,colNum+1,colNum*2+1],
+    [colNum+1,colNum+2,colNum*2,colNum*2+1],
   ],
   T: [
-    [1,game.mapSize.col,game.mapSize.col+1,game.mapSize.col+2],
-    [1,game.mapSize.col+1,game.mapSize.col+2,game.mapSize.col*2+1],
-    [game.mapSize.col,game.mapSize.col+1,game.mapSize.col+2,game.mapSize.col*2+1],
-    [1,game.mapSize.col,game.mapSize.col+1,game.mapSize.col*2+1],
+    [1,colNum,colNum+1,colNum+2],
+    [1,colNum+1,colNum+2,colNum*2+1],
+    [colNum,colNum+1,colNum+2,colNum*2+1],
+    [1,colNum,colNum+1,colNum*2+1],
   ],
-  O: R.times(() => [0,1,game.mapSize.col,game.mapSize.col+1], 4),
+  O: [
+    [0,1,colNum,colNum+1],
+    [0,1,colNum,colNum+1],
+    [0,1,colNum,colNum+1],
+    [0,1,colNum,colNum+1],
+  ],
   I: [
-    [1,game.mapSize.col+1,game.mapSize.col*2+1,game.mapSize.col*3+1],
-    [game.mapSize.col,game.mapSize.col+1,game.mapSize.col+2,game.mapSize.col+3],
-    [1,game.mapSize.col+1,game.mapSize.col*2+1,game.mapSize.col*3+1],
-    [game.mapSize.col,game.mapSize.col+1,game.mapSize.col+2,game.mapSize.col+3],
+    [1,colNum+1,colNum*2+1,colNum*3+1],
+    [colNum,colNum+1,colNum+2,colNum+3],
+    [1,colNum+1,colNum*2+1,colNum*3+1],
+    [colNum,colNum+1,colNum+2,colNum+3],
   ],
-};
+});
+
+export const shapeDic = genShapeDic(game.mapSize.col);
+export const perdictDic = genShapeDic(game.predictSize.col);
 
 /** @type {function(number): HTMLDivElement} */
 export const Square = i => game.squares[i];

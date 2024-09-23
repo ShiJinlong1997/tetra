@@ -13,22 +13,45 @@
   <div id="stage">
     <main></main>
     <aside>
-      分数
+      <span>分数</span>
       <span id="score">--</span>
-      下一个
-      <span id="predict">--</span>
+      <div id="predict">--</div>
+
+      <button class="paused" id="switch" type="button">
+        加载中
+      </button>
+
+      <div class="arrow">
+        <button
+          type="button"
+          style="grid-area: up;"
+        >
+          <svg t="1727076361435" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="6911" width="16" height="16"><path d="M899.6 765.3c-20 0-198.6-43.6-382.8-43.6-184.1 0-374.4 39.4-387.5 43.6-49 15.4-79.6-45.4-58.7-69.9 16.8-19.6 358-379.9 387-413.5 33-48.9 98-12.7 98-12.8 21.2 24.2 370.8 402.5 394.5 431.1 17.4 21 18.1 65.1-50.5 65.1z" fill="#040000" p-id="6912"></path></svg>
+          <!-- ↑ -->
+        </button>
+        <button
+          type="button"
+          style="grid-area: left; text-indent: -.12em;"
+        >
+          <svg t="1727076534917" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="7209" width="16" height="16"><path d="M765.3 124.4c0 20-43.6 198.6-43.6 382.8 0 184.1 39.4 374.4 43.6 387.5 15.4 49-45.4 79.6-69.9 58.7-19.6-16.8-379.9-358-413.5-387-48.9-33-12.7-98-12.8-98 24.2-21.2 402.5-370.8 431.1-394.5 21-17.4 65.1-18.1 65.1 50.5z" fill="#040000" p-id="7210"></path></svg>
+          <!-- ← -->
+        </button>
+        <button
+          type="button"
+          style="grid-area: down; line-height: 1.4;"
+        >
+          <svg t="1727076462402" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="7060" width="16" height="16"><path d="M124.4 258.7c20 0 198.6 43.6 382.8 43.6 184.1 0 374.4-39.4 387.5-43.6 49-15.4 79.6 45.4 58.7 69.9-16.8 19.6-358 379.9-387 413.5-33 48.9-98 12.7-98 12.8-21.3-24.2-370.9-402.5-394.6-431.1-17.3-21-18-65.1 50.6-65.1z" fill="#040000" p-id="7061"></path></svg>
+          <!-- ↓ -->
+        </button>
+        <button
+          type="button"
+          style="grid-area: right; text-indent: .12em;"
+        >
+          <svg t="1727076552555" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="7360" width="16" height="16"><path d="M258.7 899.6c0-20 43.6-198.6 43.6-382.8 0-184.1-39.4-374.4-43.6-387.5-15.4-49 45.4-79.6 69.9-58.7 19.6 16.8 379.9 358 413.5 387 48.9 33 12.7 98 12.8 98-24.2 21.2-402.5 370.8-431.1 394.5-21 17.4-65.1 18.1-65.1-50.5z" fill="#040000" p-id="7361"></path></svg>
+          <!-- → -->
+        </button>
+      </div>
     </aside>
-
-    <button id="switch" type="button">
-      <svg t="1717923965273" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5350" width="12" height="12"><path d="M870.2 466.333333l-618.666667-373.28a53.333333 53.333333 0 0 0-80.866666 45.666667v746.56a53.206667 53.206667 0 0 0 80.886666 45.666667l618.666667-373.28a53.333333 53.333333 0 0 0 0-91.333334z" fill="#5C5C66" p-id="5351"></path></svg> 开始
-    </button>
-
-    <div class="arrow">
-      <button type="button" style="grid-area: up;">↑</button>
-      <button type="button" style="grid-area: left;">←</button>
-      <button type="button" style="grid-area: down;">↓</button>
-      <button type="button" style="grid-area: right;">→</button>
-    </div>
   </div>
 
   <script type="module" src="./js/main.js"></script>

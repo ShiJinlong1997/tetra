@@ -7,11 +7,7 @@ body { margin: 0; }
 #stage {
   --square-size: 16px;
   display: grid;
-  grid-template-areas:
-    'main aside'
-    'main aside'
-    'main switch'
-    'main arrow';
+  grid-template-columns: repeat(2,auto);
   gap: 10px;
   width: 100%;
   max-width: 320px;
@@ -25,7 +21,6 @@ body { margin: 0; }
 main {
   --rows: 20;
   --cols: 10;
-  grid-area: main;
   justify-self: end;
   overflow: hidden;
   display: grid;
@@ -36,9 +31,8 @@ main {
   border: 1px solid #000;
 }
 
-main > div { --outline-width: 2px; }
-
 :where(main, #predict) > div {
+  --outline-width: 2px;
   width: var(--square-size);
   height: var(--square-size);
   background-color: #000;
@@ -51,55 +45,76 @@ main > div { --outline-width: 2px; }
 
 aside {
   --size: calc(4 * var(--square-size));
-  grid-area: aside;
-  display: flex;
-  flex-direction: column;
-  width: var(--size);
+  display: grid;
+  grid-template:
+    '.' auto
+    '.' auto
+    '.' 24px
+    'predict' auto
+    '.' 1fr
+    'switch' auto
+    '.' 24px
+    'arrow' auto;
+  justify-items: center;
+  width: max-content;
 }
 
-#score { align-self: center; }
-
 #predict {
-  --square-size: 14px;
+  grid-area: predict;
   display: grid;
   grid-template-columns: repeat(4,var(--square-size));
   grid-template-rows: repeat(4,var(--square-size));
-  /* padding: 4px; */
-  place-content: center;
   width: var(--size);
   height: var(--size);
-  border: 1px solid #000;
-}
-
-#predict > div {
-  opacity: 1;
-  --outline-width: 1px;
 }
 
 #switch {
-  align-self: end;
-  height: 28px;
+  --height: 30px;
+  grid-area: switch;
+  justify-self: stretch;
+  height: var(--height);
+  border: 0;
   vertical-align: top;
+  font-size: 16px;
+  color: #fff;
+  background-repeat: no-repeat;
+  background-image: linear-gradient(180deg, hsla(0,0%,100%,.3), transparent);
+  text-shadow: 0 -.05em .05em rgba(0,0,0,.5);
+  border-radius: calc(var(--height) / 2);
 }
+#switch.playing { background-color: rgb(170,85,85); }
+#switch.paused { background-color: rgb(85,170,85); }
 
 #switch > svg { vertical-align: -.1em; }
+#switch > svg path { fill: #fff; }
 
 .arrow {
   grid-area: arrow;
-  place-self: end center;
   display: grid;
   place-items: center;
   grid-template-areas:
     '.    up   .'
     'left . right'
     '.   down  .';
-  /* grid-template-columns: repeat(3,auto);
-      grid-template-rows: repeat(3,auto); */
   width: max-content;
+}
+
+.arrow :nth-child(even) {
+  line-height: 1.3;
 }
 
 .arrow > button {
   width: 24px;
   height: 24px;
   padding: 0;
+  border: 0;
+  color: #fff;
+  font-size: 20px;
+  background-repeat: no-repeat;
+  background-image: linear-gradient(180deg, hsla(0,0%,100%,.3), transparent);
+  background-color: #58a;
+  text-shadow: 0 -.05em .05em rgba(0,0,0,.5);
+  border-radius: 30%;
 }
+
+.arrow > button > svg path { fill: #fff; }

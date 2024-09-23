@@ -52,5 +52,8 @@ export const RndLetter = R.compose( RndItem, R.keys );
 /** @type {function(Main.MoveTo): { left: -1; right: 1; }[Main.MoveTo]} */
 export const Sign = R.prop(R.__, { left: -1, right: 1 });
 
+/** @type {function(number): string[]} */
+export const DivElems = R.compose( R.join(''), R.repeat('<div></div>') );
+
 /** @type {function(Main.ClassNameSet): string} */
 export const toClassName = R.compose( R.join(' '), Array.from );

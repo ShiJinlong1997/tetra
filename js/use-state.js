@@ -1,28 +1,29 @@
-import { game, shapeDic } from './const.js';
+import { game, perdictDic, shapeDic } from './const.js';
 import * as _ from './tool.js';
 
 /**
  * 形状内各方块下标
- * @param {Pick<Main.State, 'letter' | 'angle'>} param0
- * @returns {number[]}
+ * @type {function(Main.ShapeDic): function(Main.UseLetter>): number[]}
  */
-function Shape({ letter, angle }) {
-  return shapeDic[letter][angle];
+const Shape = dic => ({ letter, angle }) => {
+  return dic[letter][angle];
 }
 
 /**
  * 偏移对应下标数
- * @param {Pick<Main.State, 'row' | 'col'>} param0
- * @returns {number}
+ * @type {function({ col: number; }): function(Main.UsePosition): number}
  */
-export function Offset({ row, col }) {
-  return row * game.mapSize.col + col;
+export const Offset = mapSize => ({ row, col }) => {
+  return row * mapSize.col + col;
 }
 
 export const pickState = R.pick(['letter','angle','row','col']);
 
-/** @type {function(Pick<Main.State, 'letter' | 'angle' | 'row' | 'col'>): number[]} */
-export const IndexList = R.converge(R.map, [R.compose(R.add, Offset), Shape]);
+/** @type {function(Main.PickedState): number[]} */
+export const IndexList = R.converge(R.map, [R.compose(R.add, Offset(game.mapSize)), Shape(shapeDic)]);
+
+/** @type {function(Main.PickedState): number[]} */
+export const PredictList = R.converge(R.map, [R.compose(R.add, Offset(game.predictSize)), Shape(perdictDic)]);
 
 /** @type {function(number): Main.ClassNameSet[]} */
 export const ClassNameList = R.times(() => new Set());
@@ -30,7 +31,7 @@ export const ClassNameList = R.times(() => new Set());
 /** @returns {Main.State} */
 export function useState() {
   const shapeStatusLoop = _.useLoops(0, ['active', 'hold']);
-  const playStatusLoop = _.useLoops(0, ['paused','playing']);
+  const playStatusLoop = _.useLoops(0, ['paused', 'playing']);
   const angleLoop = _.useLoops(0, R.range(0,4));
 
   return {
@@ -47,31 +48,45 @@ export function useState() {
       this.playStatus = playStatusLoop.next();
     },
 
-    angle: angleLoop.value(),
-    inferNextAngle: angleLoop.next,
-    letter: _.RndLetter(shapeDic),
+    predict: {
+      angle: 0,
+      letter: _.RndLetter(perdictDic),
+    },
 
-    position: {
-      row: 0,
-      col: game.mapSize.col / 2 - 1,
+    angle: angleLoop.value(),
+    letter: _.RndLetter(shapeDic),
+    
+    get predictList() {
+      return PredictList(Object.assign(
+        {
+          row: 0,
+          col: game.predictSize.col / 2 - 1
+        },
+        this.predict
+      ));
     },
-    get row() {
-      return this.position.row;
-    },
-    get col() {
-      return this.position.col;
-    },
+    inferNextAngle: angleLoop.next,
+    
+    row: 0,
+    col: game.mapSize.col / 2 - 1,
 
     get indexList() {
       return IndexList(this);
     },
     classNameList: ClassNameList(game.squaresNum),
+    nextShape() {
+      angleLoop.reset();
+      Object.assign(this, this.predict);
+      this.predict.letter = _.RndLetter(shapeDic);
+      this.row = 0;
+      this.col = game.mapSize.col / 2 - 1;
+    },
     reset() {
       this.letter = _.RndLetter(shapeDic);
       angleLoop.reset();
       this.angle = angleLoop.value();
-      this.position.row = 0;
-      this.position.col = game.mapSize.col / 2 - 1;
+      this.row = 0;
+      this.col = game.mapSize.col / 2 - 1;
     }
   };
 }

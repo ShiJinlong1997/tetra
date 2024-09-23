@@ -2,54 +2,6 @@ import * as _ from './tool.js';
 import { Icon, game, isAtEdge, ColEdge } from './const.js';
 import { IndexList, useState, Offset, pickState } from './use-state.js';
 
-// const state = {
-//   score: 0,
-//   timerId: -1,
-//   /** @type {'playing' | 'paused'} */
-//   playStatus: playStatusLoop.value(),
-//   togglePlayStatus() {
-//     this.playStatus = playStatusLoop.next();
-//   },
-//   angle: 0,
-//   /** @type {Main.Letter} */
-//   letter: _.RndLetter(shapeDic),
-//   get angleLoop() {
-//     return _.useLoops(shapeDic[this.letter]);
-//   },
-//   get shape() {
-//     return shapeDic[this.letter][this.angle];
-//   },
-//   position: {
-//     row: 0,
-//     col: game.mapSize.col / 2 - 1,
-//   },
-//   get row() {
-//     return this.position.row;
-//   },
-//   get col() {
-//     return this.position.col;
-//   },
-//   get offset() {
-//     return this.row * game.mapSize.col + this.col;
-//   },
-//   /** @type {number[]} */
-//   get indexList() {
-//     return this.shape.map(R.add(this.offset));
-//   },
-//   inferIndexList(payload) {
-//     /** @type {{ letter: Letter; angle: number; }} */
-//     const o = Object.assign(R.pick(['letter','angle','row','col'],this), payload);
-//     const shape = shapeDic[o.letter][o.angle];
-//     const offset = o.row * game.mapSize.col + o.col;
-//     return shape.map(R.add(offset));
-//   },
-//   reset() {
-//     this.letter = _.RndLetter(shapeDic);
-//     this.position.row = 0;
-//     this.position.col = game.mapSize.col / 2 - 1;
-//   },
-// };
-
 const state = useState();
 
 const inferIndexList = source => R.compose(
@@ -64,7 +16,7 @@ const isTaken = R.any(
 );
 
 function initSquares() {
-  game.mainElem.innerHTML = R.compose( R.join(''), R.repeat('<div></div>') )(game.squaresNum);
+  game.mainElem.innerHTML = _.DivElems(game.squaresNum);
 
   // 最后一行添加停止标识
   R.compose(
@@ -119,7 +71,7 @@ function move(to) {
     R.compose( R.not, isAtEdge(ColEdge(to)), IndexList, R.always(state) ),
   ]);
 
-  R.when( isValid, R.tap(col => (state.position.col = col)) )(nextCol);
+  R.when( isValid, R.tap(col => (state.col = col)) )(nextCol);
   draw();
   render();
   freeze();
@@ -142,7 +94,7 @@ function draw() {
 function run() {
   if (R.equals('active', state.shapeStatus)) {
     undraw()
-    ++state.position.row;
+    ++state.row;
     draw();
     render();
     state.toggleShapeStatus();
@@ -160,16 +112,22 @@ function freeze() {
     state.indexList.forEach(index => {
       state.classNameList[index].add('taken')
     });
-    state.reset();
-    // draw();
-    // render();
+    
+    state.predictList.forEach(index => {
+      game.predictElem.children[index].className = '';
+    });
+    state.nextShape();
+    
+    state.predictList.forEach(index => {
+      game.predictElem.children[index].className = 'show';
+    });
   }
 }
 
 function addScore() {
   const colsAtRow = R.compose(
     R.apply(R.range),
-    R.map(R.compose( Offset, R.zipObj(['row', 'col']) )),
+    R.map(R.compose( Offset(game.mapSize), R.zipObj(['row', 'col']) )),
     R.xprod(R.__, [0, game.mapSize.col]),
     Array.of
   );
@@ -198,25 +156,25 @@ function addScore() {
   draw();
   render();
   state.score += fullRows.length;
-  document.getElementById('score').innerText = String(state.score);
+  game.scoreElem.innerText = String(state.score);
 }
 
 function gameOver() {  
   if (isTaken(state.indexList)) {
-    alert('游戏结束')
-    state.playStatus = 'paused';
-    clearInterval(state.timerId);
+    alert('游戏结束');
+    togglePlayStatus();
+    game.switchElem.innerHTML = `${Icon.play} 开始`;
   }
 }
 
 function togglePlayStatus() {
   state.togglePlayStatus();
+  const playing = isPlaying();
 
-  game.switchElem.innerHTML = R.equals('playing', state.playStatus)
-    ? `${ Icon.pause } 暂停`
-    : `${ Icon.play } 继续`;
-  
-  R.equals('playing', state.playStatus)
+  game.switchElem.innerHTML = playing ? `${Icon.pause} 暂停` : `${Icon.play} 继续`;
+  game.switchElem.className = state.playStatus;
+
+  playing
     ? state.timerId = setInterval(run, 500)
     : clearInterval(state.timerId);
 }
@@ -227,7 +185,7 @@ function render() {
   })
 }
 
-const Handler = R.propOr(R.T, R.__, {
+const Handler = R.propOr(R.F, R.__, {
   KeyP: togglePlayStatus,
   ArrowUp: rotate,
   ArrowRight: () => move('right'),
@@ -235,22 +193,37 @@ const Handler = R.propOr(R.T, R.__, {
   ArrowDown: run,
 });
 
+const isPlaying = () => R.propEq('playing', 'playStatus', state);
+
 function main() {
   initSquares();
-
+  game.scoreElem.innerText = String(state.score);
+  game.predictElem.innerHTML = _.DivElems(16);
+  game.switchElem.innerHTML = `${Icon.play} 开始`;
+  
   game.switchElem.addEventListener('click', togglePlayStatus);
   game.switchElem.addEventListener('click', () => {
-
+    state.predictList.forEach(index => {
+      game.predictElem.children[index].className = 'show';
+    });
     draw();
     render();
 
     addEventListener('keyup', R.when(
-      () => R.equals('playing', state.playStatus),
-      R.T,
+      isPlaying,
       R.compose( R.call, Handler, R.prop('code') )
     ));
-  }, { once: true });
 
+    const handlers = [
+      rotate,
+      () => move('left'),
+      run,
+      () => move('right'),
+    ];
+    document.querySelectorAll('.arrow > button').forEach((elem, i) => {
+      elem.addEventListener('click', R.when( isPlaying, handlers[i] ));
+    });
+  }, { once: true });
 }
 
 main();

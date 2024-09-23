@@ -1,15 +1,21 @@
 declare namespace Main {
-  type ShapeDic = typeof import('./const.js').shapeDic;
+  type ShapeDic = ReturnType<typeof import('./const.js').genShapeDic>;
   type Letter = keyof ShapeDic;
   type MoveTo = 'left' | 'right';
   type Sign = -1 | 1;
   type ShapeStatus = 'active' | 'hold';
   type PlayStatus = 'paused' | 'playing';
   type ClassNameSet = Set<'show' | 'taken'>;
+  type PickedState = Pick<Main.State, 'letter' | 'angle' | 'row' | 'col'>;
 
   interface UseShapeStatus {
     shapeStatus: ShapeStatus;
     toggleShapeStatus(): void;
+  }
+
+  interface UseShape {
+    letter: Letter;
+    angle: number;
   }
 
   interface UsePlayStatus {
@@ -19,17 +25,12 @@ declare namespace Main {
 
   interface UseLetter {
     angle: number;
-    inferNextAngle(): number;
     letter: Letter;
   }
   
   interface UsePosition {
-    position: {
-      row: 0;
-      col: number;
-    },
-    get row(): number;
-    get col(): number;
+    row: number;
+    col: number;
   }
 
   type State =
@@ -37,11 +38,15 @@ declare namespace Main {
   & UsePlayStatus
   & UseLetter
   & UsePosition
+  & UseShape
   & { score: number; }
   & { timerId: number; }
   & { init(): void; }
+  & { predict: UseShape; }
   & {
       classNameList: ClassNameSet[];
       get indexList(): number[];
+      inferNextAngle(): number;
+      predictList: number[];
     }
 }
