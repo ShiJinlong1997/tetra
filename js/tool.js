@@ -57,3 +57,22 @@ export const DivElems = R.compose( R.join(''), R.repeat('<div></div>') );
 
 /** @type {function(Main.ClassNameSet): string} */
 export const toClassName = R.compose( R.join(' '), Array.from );
+
+/** @type {function(number): Main.ClassNameSet[]} */
+export const ClassNameList = R.times(() => new Set());
+
+/**
+ * 形状内各方块下标
+ * @type {function(Main.ShapeDic): function(Main.UseLetter>): number[]}
+ */
+export const Shape = dic => ({ letter, angle }) => {
+  return dic[letter][angle];
+}
+
+/**
+ * 偏移对应下标数
+ * @type {function({ col: number; }): function(Main.UsePosition): number}
+ */
+export const Offset = mapSize => ({ row, col }) => {
+  return row * mapSize.col + col;
+}

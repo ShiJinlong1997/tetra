@@ -47,6 +47,7 @@ declare namespace Main {
       classNameList: ClassNameSet[];
       get indexList(): number[];
       inferNextAngle(): number;
+      inferPrevAngle(): number;
       predictList: number[];
     }
 }

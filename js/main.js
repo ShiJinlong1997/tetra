@@ -1,13 +1,15 @@
 import * as _ from './tool.js';
 import { Icon, game, isAtEdge, ColEdge } from './const.js';
-import { IndexList, useState, Offset, pickState } from './use-state.js';
+import { IndexList, useState } from './use-state.js';
+import { usePredict } from './use-predict.js';
 
 const state = useState();
+const predict = usePredict();
 
 const inferIndexList = source => R.compose(
   IndexList,
   R.mergeRight(R.__, source),
-  pickState
+  R.pick(['letter','angle','row','col'])
 )(state);
 
 /** @type {function(number[]): boolean} */
@@ -35,6 +37,11 @@ function initSquares() {
 function rotate() {
   togglePlayStatus();
   undraw();
+  // 假设
+  // 这次 inferNextAngle() 判定为 invalid，
+  // 闭包的 i 已变化，
+  // 这次 inferNextAngle() 判定为 valid，
+  // i 就不是期望值，所以 invalid 需要 inferPrevAngle()
   const nextAngle = state.inferNextAngle();
   const Source = R.compose( R.zipObj(['angle']), Array.of );
 
@@ -48,7 +55,11 @@ function rotate() {
     Source,
   );
 
-  R.when( isValid, R.tap(angle => (state.angle = angle)) )(nextAngle);
+  R.ifElse(
+    isValid,
+    R.tap(angle => (state.angle = angle)),
+    state.inferPrevAngle,
+  )(nextAngle);
   draw();
   render();
   freeze();
@@ -113,21 +124,24 @@ function freeze() {
       state.classNameList[index].add('taken')
     });
     
-    state.predictList.forEach(index => {
-      game.predictElem.children[index].className = '';
+    predict.indexList.forEach(index => {
+      predict.classNameList[index].clear();
     });
-    state.nextShape();
+    state.nextShape(predict);
+    predict.nextShape();
     
-    state.predictList.forEach(index => {
-      game.predictElem.children[index].className = 'show';
+    predict.indexList.forEach(index => {
+      predict.classNameList[index].add('show');
     });
+    renderPredict();
   }
 }
 
 function addScore() {
+  /** @type {function(number): number[]} */
   const colsAtRow = R.compose(
     R.apply(R.range),
-    R.map(R.compose( Offset(game.mapSize), R.zipObj(['row', 'col']) )),
+    R.map(R.compose( _.Offset(game.mapSize), R.zipObj(['row', 'col']) )),
     R.xprod(R.__, [0, game.mapSize.col]),
     Array.of
   );
@@ -142,11 +156,7 @@ function addScore() {
 
   fullRows.forEach(row => {
     const cols = colsAtRow(row);
-    cols.forEach(index => {
-      state.classNameList[index].delete('taken');
-      state.classNameList[index].delete('show');
-    });
-    const removed = state.classNameList.splice(cols[0], game.mapSize.col);
+    const removed = state.classNameList.splice(cols[0], cols.length);
     removed.forEach(set => set.clear());
     state.classNameList = removed.concat(state.classNameList);
   });
@@ -185,6 +195,12 @@ function render() {
   })
 }
 
+function renderPredict() {
+  predict.classNameList.forEach((set, i) => {
+    game.predictElem.children[i].className = _.toClassName(set);
+  });
+}
+
 const Handler = R.propOr(R.F, R.__, {
   KeyP: togglePlayStatus,
   ArrowUp: rotate,
@@ -203,11 +219,12 @@ function main() {
   
   game.switchElem.addEventListener('click', togglePlayStatus);
   game.switchElem.addEventListener('click', () => {
-    state.predictList.forEach(index => {
-      game.predictElem.children[index].className = 'show';
+    predict.indexList.forEach(index => {
+      predict.classNameList[index].add('show');
     });
     draw();
     render();
+    renderPredict();
 
     addEventListener('keyup', R.when(
       isPlaying,
