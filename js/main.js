@@ -23,20 +23,20 @@ function initSquares() {
   // 最后一行添加停止标识
   R.compose(
     R.forEach(elem => {
-      const index = R.indexOf(elem, game.squares);
+      const index = R.indexOf(elem, state.squares);
       state.classNameList[index].add('taken');
     }),
     R.slice(
-      game.squares.length - game.mapSize.col,
-      game.squares.length
+      state.squares.length - game.mapSize.col,
+      state.squares.length
     )
-  )(game.squares);
+  )(state.squares);
 }
 
 /** 方块变形 */
 function rotate() {
   togglePlayStatus();
-  undraw();
+  undraw(state);
   // 假设
   // 这次 inferNextAngle() 判定为 invalid，
   // 闭包的 i 已变化，
@@ -60,8 +60,8 @@ function rotate() {
     R.tap(angle => (state.angle = angle)),
     state.inferPrevAngle,
   )(nextAngle);
-  draw();
-  render();
+  draw(state);
+  render(state);
   freeze();
   addScore();
   togglePlayStatus();
@@ -73,7 +73,7 @@ function rotate() {
  */
 function move(to) {
   togglePlayStatus();
-  undraw();
+  undraw(state);
   const nextCol = state.col + _.Sign(to);
   const Source = R.compose( R.zipObj(['col']), Array.of );
 
@@ -83,31 +83,31 @@ function move(to) {
   ]);
 
   R.when( isValid, R.tap(col => (state.col = col)) )(nextCol);
-  draw();
-  render();
+  draw(state);
+  render(state);
   freeze();
   addScore();
   togglePlayStatus();
 }
 
-function undraw() {
-  state.indexList.forEach(index => {
-    state.classNameList[index].delete('show');
+function undraw({ indexList, classNameList }) {
+  indexList.forEach(index => {
+    classNameList[index].delete('show');
   });
 }
 
-function draw() {
-  state.indexList.forEach(index => {
-    state.classNameList[index].add('show');
+function draw({ indexList, classNameList }) {
+  indexList.forEach(index => {
+    classNameList[index].add('show');
   });
 }
 
 function run() {
   if (R.equals('active', state.shapeStatus)) {
-    undraw()
+    undraw(state);
     ++state.row;
-    draw();
-    render();
+    draw(state);
+    render(state);
     state.toggleShapeStatus();
   } else {
     freeze();
@@ -130,10 +130,8 @@ function freeze() {
     state.nextShape(predict);
     predict.nextShape();
     
-    predict.indexList.forEach(index => {
-      predict.classNameList[index].add('show');
-    });
-    renderPredict();
+    draw(predict);
+    render(predict);
   }
 }
 
@@ -161,10 +159,10 @@ function addScore() {
     state.classNameList = removed.concat(state.classNameList);
   });
 
-  // freeze() 更新了 indexList 后，消行会让形状下降，所以先别 render()
-  undraw();
-  draw();
-  render();
+  // freeze() 更新了 indexList 后，消行会让形状下降，所以先别在 freeze() 里调 render()
+  undraw(state);
+  draw(state);
+  render(state);
   state.score += fullRows.length;
   game.scoreElem.innerText = String(state.score);
 }
@@ -173,7 +171,8 @@ function gameOver() {
   if (isTaken(state.indexList)) {
     alert('游戏结束');
     togglePlayStatus();
-    game.switchElem.innerHTML = `${Icon.play} 开始`;
+    game.switchElem.innerHTML = `${Icon.play} 再来`;
+    game.switchElem.addEventListener('click', init, { once: true });
   }
 }
 
@@ -189,27 +188,39 @@ function togglePlayStatus() {
     : clearInterval(state.timerId);
 }
 
-function render() {
-  state.classNameList.forEach((set, i) => {
-    game.squares[i].className = _.toClassName(set);
+/**
+ * @param {Pick<Main.UseRender, 'classNameList', 'squares'>} param0
+ */
+function render({ classNameList, squares }) {
+  classNameList.forEach((set, i) => {
+    squares[i].className = _.toClassName(set);
   })
 }
 
-function renderPredict() {
-  predict.classNameList.forEach((set, i) => {
-    game.predictElem.children[i].className = _.toClassName(set);
-  });
-}
-
-const Handler = R.propOr(R.F, R.__, {
-  KeyP: togglePlayStatus,
+const ListenerMap = {
   ArrowUp: rotate,
   ArrowRight: () => move('right'),
   ArrowLeft: () => move('left'),
   ArrowDown: run,
-});
+};
+
+const Listener = R.propOr(R.F, R.__, ListenerMap);
 
 const isPlaying = () => R.propEq('playing', 'playStatus', state);
+
+function init() {
+  predict.classNameList.forEach(set => set.clear());
+  state.classNameList.forEach(set => set.clear());
+  initSquares();
+
+  state.nextShape(predict);
+  draw(state);
+  render(state);
+  
+  predict.nextShape();
+  draw(predict);
+  render(predict);
+}
 
 function main() {
   initSquares();
@@ -218,29 +229,23 @@ function main() {
   game.switchElem.innerHTML = `${Icon.play} 开始`;
   
   game.switchElem.addEventListener('click', togglePlayStatus);
-  game.switchElem.addEventListener('click', () => {
-    predict.indexList.forEach(index => {
-      predict.classNameList[index].add('show');
-    });
-    draw();
-    render();
-    renderPredict();
-
-    addEventListener('keyup', R.when(
-      isPlaying,
-      R.compose( R.call, Handler, R.prop('code') )
-    ));
-
-    const handlers = [
-      rotate,
-      () => move('left'),
-      run,
-      () => move('right'),
-    ];
-    document.querySelectorAll('.arrow > button').forEach((elem, i) => {
-      elem.addEventListener('click', R.when( isPlaying, handlers[i] ));
-    });
-  }, { once: true });
+  game.switchElem.addEventListener('click', init, { once: true });
 }
 
 main();
+
+addEventListener('keyup', R.when(
+  isPlaying,
+  R.compose( R.call, Listener, R.prop('code') )
+));
+
+document.querySelectorAll('.arrow > button').forEach(elem => {
+  elem.addEventListener('click', R.when(
+    isPlaying,
+    R.compose(
+      R.call,
+      Listener,
+      R.path(['currentTarget', 'dataset', 'code'])
+    )
+  ));
+})

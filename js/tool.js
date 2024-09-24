@@ -63,7 +63,7 @@ export const ClassNameList = R.times(() => new Set());
 
 /**
  * 形状内各方块下标
- * @type {function(Main.ShapeDic): function(Main.UseLetter>): number[]}
+ * @type {function(Main.ShapeDic): function(Main.UseShape>): number[]}
  */
 export const Shape = dic => ({ letter, angle }) => {
   return dic[letter][angle];

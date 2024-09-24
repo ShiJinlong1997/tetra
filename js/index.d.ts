@@ -8,24 +8,9 @@ declare namespace Main {
   type ClassNameSet = Set<'show' | 'taken'>;
   type PickedState = Pick<Main.State, 'letter' | 'angle' | 'row' | 'col'>;
 
-  interface UseShapeStatus {
-    shapeStatus: ShapeStatus;
-    toggleShapeStatus(): void;
-  }
-
   interface UseShape {
     letter: Letter;
     angle: number;
-  }
-
-  interface UsePlayStatus {
-    playStatus: PlayStatus;
-    togglePlayStatus(): void;
-  }
-
-  interface UseLetter {
-    angle: number;
-    letter: Letter;
   }
   
   interface UsePosition {
@@ -33,21 +18,38 @@ declare namespace Main {
     col: number;
   }
 
+  interface UseRender {
+    get indexList(): number[];
+    classNameList: ClassNameSet[];
+    get squares(): HTMLDivElement[];
+  }
+
+  type Predict =
+  & { info: UseShape; }
+  & { get position(): UsePosition; }
+  & UseRender
+  & { nextShape(): void; }
+
   type State =
-  & UseShapeStatus
-  & UsePlayStatus
-  & UseLetter
-  & UsePosition
+  & {
+      shapeStatus: ShapeStatus;
+      toggleShapeStatus(): void;
+    }
+  & {
+      playStatus: PlayStatus;
+      togglePlayStatus(): void;
+    }
   & UseShape
+  & UsePosition
   & { score: number; }
   & { timerId: number; }
-  & { init(): void; }
-  & { predict: UseShape; }
   & {
-      classNameList: ClassNameSet[];
-      get indexList(): number[];
+      nextShape(predict: Predict): void;
+      resetPosition(): void;
+    }
+  & UseRender
+  & {
       inferNextAngle(): number;
       inferPrevAngle(): number;
-      predictList: number[];
     }
 }

@@ -37,6 +37,10 @@ export function useState() {
       return IndexList(this);
     },
     classNameList: _.ClassNameList(game.squaresNum),
+    get squares() {
+      return Array.from(game.mainElem.children);
+    },
+
     nextShape(predict) {
       angleLoop.reset();
       Object.assign(this, predict.info);
@@ -46,11 +50,5 @@ export function useState() {
       this.row = 0;
       this.col = game.mapSize.col / 2 - 1;
     },
-    reset() {
-      this.letter = _.RndLetter(shapeDic);
-      angleLoop.reset();
-      this.angle = angleLoop.value();
-      this.resetPosition();
-    }
   };
 }

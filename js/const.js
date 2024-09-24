@@ -10,17 +10,13 @@ export const game = {
   get predictSize() {
     return { row: 4, col: 4 };
   },
-  /** 实际的方块数 */
+  /** 主区实际的方块数 */
   get squaresNum() {
     return (this.mapSize.row + 1) * this.mapSize.col;
   },
   /** @type {HTMLDivElement}} */
   get mainElem() {
     return document.querySelector('main');
-  },
-  /** @type {HTMLDivElement[]} */
-  get squares() {
-    return Array.from(this.mainElem.children);
   },
   /** @type {HTMLSpanElement} */
   get scoreElem() {
@@ -29,10 +25,6 @@ export const game = {
   /** @type {HTMLDivElement} */
   get predictElem() {
     return document.getElementById('predict');
-  },
-  /** @type {HTMLDivElement[]} */
-  get predictSquares() {
-    return Array.from(this.predictElem.children);
   },
   /** @type {HTMLButtonElement} */
   get switchElem() {
