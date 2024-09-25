@@ -18,11 +18,11 @@ const HandleClassOf = ({ classMapList }) => indexList => ({
   classMapList
 });
 
-const detectTaken = f => (
+const detectTaken = f => indexList => (
   R.compose(
     ClassHandler( f, R.flip(R.prop), R.head, ['taken'] ),
     HandleClassOf(state)
-  )
+  )(indexList)
 );
 
 /** @type {function(number[]): boolean} */
@@ -137,16 +137,18 @@ function addScore() {
   const isFullRow = R.compose( allTaken, colsAtRow );
   const fullRows = R.filter(isFullRow, R.range(0,game.mapSize.row));
 
-  delClass(['show'], state);
   fullRows.forEach(row => {
     const cols = colsAtRow(row);
 
     R.compose( delClass(['show', 'taken']), HandleClassOf(state) )(cols);
     const removed = state.classMapList.splice(cols[0], cols.length);
-    state.classMapList = removed.concat(state.classMapList);
+    state.classMapList = removed.concat(state.classMapList);   
   });
-
-  // 消行会让形状下降，消行后再调 render(state)
+  
+  // 消行使形状下降
+  // 重分配 state.classMapList
+  // 再调 render(state)
+  delClass(['show'], state);
   addClass(['show'], state);
   render(state);
   state.score += fullRows.length;
@@ -212,6 +214,9 @@ function initSquares() {
 }
 
 function init() {
+  state.score = 0;
+  game.scoreElem.innerText = String(state.score);
+  
   R.compose(
     delClass(['show']),
     HandleClassOf(predict),
