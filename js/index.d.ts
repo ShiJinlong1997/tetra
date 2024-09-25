@@ -5,7 +5,10 @@ declare namespace Main {
   type Sign = -1 | 1;
   type ShapeStatus = 'active' | 'hold';
   type PlayStatus = 'paused' | 'playing';
-  type ClassNameSet = Set<'show' | 'taken'>;
+  interface ClassMap {
+    show: boolean;
+    taken: boolean;
+  }
   type PickedState = Pick<Main.State, 'letter' | 'angle' | 'row' | 'col'>;
 
   interface UseShape {
@@ -20,7 +23,7 @@ declare namespace Main {
 
   interface UseRender {
     get indexList(): number[];
-    classNameList: ClassNameSet[];
+    classMapList: ClassMap[];
     get squares(): HTMLDivElement[];
   }
 

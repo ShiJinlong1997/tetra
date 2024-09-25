@@ -1,7 +1,8 @@
-import * as _ from './tool.js';
+import { ClassHandler, DivElems, inferMap, toClassName } from './util/dom.js';
 import { Icon, game, isAtEdge, ColEdge } from './const.js';
 import { IndexList, useState } from './use-state.js';
 import { usePredict } from './use-predict.js';
+import { Offset, Sign } from './util/index.js';
 
 const state = useState();
 const predict = usePredict();
@@ -12,31 +13,32 @@ const inferIndexList = source => R.compose(
   R.pick(['letter','angle','row','col'])
 )(state);
 
-/** @type {function(number[]): boolean} */
-const isTaken = R.any(
-  index => state.classNameList[index].has('taken')
+const HandleClassOf = ({ classMapList }) => indexList => ({
+  indexList,
+  classMapList
+});
+
+const detectTaken = f => (
+  R.compose(
+    ClassHandler( f, R.flip(R.prop), R.head, ['taken'] ),
+    HandleClassOf(state)
+  )
 );
 
-function initSquares() {
-  game.mainElem.innerHTML = _.DivElems(game.squaresNum);
+/** @type {function(number[]): boolean} */
+const anyTaken = detectTaken(R.any);
 
-  // 最后一行添加停止标识
-  R.compose(
-    R.forEach(elem => {
-      const index = R.indexOf(elem, state.squares);
-      state.classNameList[index].add('taken');
-    }),
-    R.slice(
-      state.squares.length - game.mapSize.col,
-      state.squares.length
-    )
-  )(state.squares);
-}
+/** @type {function(number[]): boolean} */
+const allTaken = detectTaken(R.all);
+
+const setClass = ClassHandler(R.forEach, Object.assign);
+const addClass = setClass(inferMap('add'));
+const delClass = setClass(inferMap('delete'));
 
 /** 方块变形 */
 function rotate() {
   togglePlayStatus();
-  undraw(state);
+  delClass(['show'], state);
   // 假设
   // 这次 inferNextAngle() 判定为 invalid，
   // 闭包的 i 已变化，
@@ -48,8 +50,11 @@ function rotate() {
   // 一组方块中的小方块不可能又有在最左边，又有在最右边的
   const isValid = R.compose(
     R.allPass([
-      R.compose( R.not, isTaken ),
-      R.compose( R.not, R.allPass([ isAtEdge(ColEdge('left')), isAtEdge(ColEdge('right')) ]) ),
+      R.compose( R.not, anyTaken ),
+      R.compose(
+        R.not,
+        R.allPass([ isAtEdge(ColEdge('left')), isAtEdge(ColEdge('right')) ])
+      ),
     ]),
     inferIndexList,
     Source,
@@ -60,7 +65,7 @@ function rotate() {
     R.tap(angle => (state.angle = angle)),
     state.inferPrevAngle,
   )(nextAngle);
-  draw(state);
+  addClass(['show'], state);
   render(state);
   freeze();
   addScore();
@@ -73,40 +78,28 @@ function rotate() {
  */
 function move(to) {
   togglePlayStatus();
-  undraw(state);
-  const nextCol = state.col + _.Sign(to);
+  delClass(['show'], state);
+  const nextCol = state.col + Sign(to);
   const Source = R.compose( R.zipObj(['col']), Array.of );
 
   const isValid = R.allPass([
-    R.compose( R.not, isTaken, inferIndexList, Source ),
+    R.compose( R.not, anyTaken, inferIndexList, Source ),
     R.compose( R.not, isAtEdge(ColEdge(to)), IndexList, R.always(state) ),
   ]);
 
   R.when( isValid, R.tap(col => (state.col = col)) )(nextCol);
-  draw(state);
+  addClass(['show'], state);
   render(state);
   freeze();
   addScore();
   togglePlayStatus();
 }
 
-function undraw({ indexList, classNameList }) {
-  indexList.forEach(index => {
-    classNameList[index].delete('show');
-  });
-}
-
-function draw({ indexList, classNameList }) {
-  indexList.forEach(index => {
-    classNameList[index].add('show');
-  });
-}
-
 function run() {
   if (R.equals('active', state.shapeStatus)) {
-    undraw(state);
+    delClass(['show'], state);
     ++state.row;
-    draw(state);
+    addClass(['show'], state);
     render(state);
     state.toggleShapeStatus();
   } else {
@@ -119,19 +112,16 @@ function run() {
 
 function freeze() {
   const nextRow = R.map(R.add(game.mapSize.col), state.indexList);
-  if (isTaken(nextRow)) {
-    state.indexList.forEach(index => {
-      state.classNameList[index].add('taken')
-    });
-    
-    predict.indexList.forEach(index => {
-      predict.classNameList[index].clear();
-    });
+  if (anyTaken(nextRow)) {
+    addClass(['taken'], state);
+
     state.nextShape(predict);
+    delClass(['show'], predict);
     predict.nextShape();
-    
-    draw(predict);
+    addClass(['show'], predict);
+
     render(predict);
+    // 先别调 render(state)，因为 addScore() 消行会使形状下降
   }
 }
 
@@ -139,36 +129,32 @@ function addScore() {
   /** @type {function(number): number[]} */
   const colsAtRow = R.compose(
     R.apply(R.range),
-    R.map(R.compose( _.Offset(game.mapSize), R.zipObj(['row', 'col']) )),
+    R.map(R.compose( Offset(game.mapSize), R.zipObj(['row', 'col']) )),
     R.xprod(R.__, [0, game.mapSize.col]),
     Array.of
   );
 
-  const isFullRow = R.compose(
-    R.all(index => state.classNameList[index].has('taken')),
-    colsAtRow
-  );
-
-  // [ ] filter() 换成 transduce()
+  const isFullRow = R.compose( allTaken, colsAtRow );
   const fullRows = R.filter(isFullRow, R.range(0,game.mapSize.row));
 
+  delClass(['show'], state);
   fullRows.forEach(row => {
     const cols = colsAtRow(row);
-    const removed = state.classNameList.splice(cols[0], cols.length);
-    removed.forEach(set => set.clear());
-    state.classNameList = removed.concat(state.classNameList);
+
+    R.compose( delClass(['show', 'taken']), HandleClassOf(state) )(cols);
+    const removed = state.classMapList.splice(cols[0], cols.length);
+    state.classMapList = removed.concat(state.classMapList);
   });
 
-  // freeze() 更新了 indexList 后，消行会让形状下降，所以先别在 freeze() 里调 render()
-  undraw(state);
-  draw(state);
+  // 消行会让形状下降，消行后再调 render(state)
+  addClass(['show'], state);
   render(state);
   state.score += fullRows.length;
   game.scoreElem.innerText = String(state.score);
 }
 
-function gameOver() {  
-  if (isTaken(state.indexList)) {
+function gameOver() {
+  if (anyTaken(state.indexList)) {
     alert('游戏结束');
     togglePlayStatus();
     game.switchElem.innerHTML = `${Icon.play} 再来`;
@@ -189,11 +175,12 @@ function togglePlayStatus() {
 }
 
 /**
- * @param {Pick<Main.UseRender, 'classNameList', 'squares'>} param0
+ * 用类对象数组更新 className
+ * @param {Pick<Main.UseRender, 'classMapList', 'squares'>} param0
  */
-function render({ classNameList, squares }) {
-  classNameList.forEach((set, i) => {
-    squares[i].className = _.toClassName(set);
+function render({ classMapList, squares }) {
+  classMapList.forEach((set, i) => {
+    squares[i].className = toClassName(set);
   })
 }
 
@@ -208,24 +195,49 @@ const Listener = R.propOr(R.F, R.__, ListenerMap);
 
 const isPlaying = () => R.propEq('playing', 'playStatus', state);
 
-function init() {
-  predict.classNameList.forEach(set => set.clear());
-  state.classNameList.forEach(set => set.clear());
-  initSquares();
+function initSquares() {
+  game.mainElem.innerHTML = DivElems(game.squaresNum);
 
+  // 最后一行添加停止标识
+  R.compose(
+    addClass(['taken']),
+    HandleClassOf(state),
+    R.range
+  )(
+    state.squares.length - game.mapSize.col,
+    state.squares.length
+  );
+
+  render(state);
+}
+
+function init() {
+  R.compose(
+    delClass(['show']),
+    HandleClassOf(predict),
+    R.times(R.identity)
+  )(predict.classMapList.length);
+
+  R.compose(
+    delClass(['show', 'taken']),
+    HandleClassOf(state),
+    R.slice(0, game.squaresNum - game.mapSize.col),
+    R.times(R.identity)
+  )(state.classMapList.length);
+  
   state.nextShape(predict);
-  draw(state);
+  addClass(['show'], state);
   render(state);
   
   predict.nextShape();
-  draw(predict);
+  addClass(['show'], predict);
   render(predict);
 }
 
 function main() {
   initSquares();
   game.scoreElem.innerText = String(state.score);
-  game.predictElem.innerHTML = _.DivElems(16);
+  game.predictElem.innerHTML = DivElems(16);
   game.switchElem.innerHTML = `${Icon.play} 开始`;
   
   game.switchElem.addEventListener('click', togglePlayStatus);
@@ -234,18 +246,13 @@ function main() {
 
 main();
 
-addEventListener('keyup', R.when(
-  isPlaying,
-  R.compose( R.call, Listener, R.prop('code') )
-));
+const ListenerFrom = Key => R.compose( R.call, Listener, Key );
+
+addEventListener('keyup', R.when( isPlaying, ListenerFrom(R.prop('code')) ));
 
 document.querySelectorAll('.arrow > button').forEach(elem => {
   elem.addEventListener('click', R.when(
     isPlaying,
-    R.compose(
-      R.call,
-      Listener,
-      R.path(['currentTarget', 'dataset', 'code'])
-    )
+    ListenerFrom( R.path(['currentTarget', 'dataset', 'code']) )
   ));
 })

@@ -1,14 +1,17 @@
 import { game, shapeDic } from './const.js';
-import * as _ from './tool.js';
+import { ClassMapList } from './util/dom.js';
+import { Offset, Shape } from './util/index.js';
+import { RndLetter } from './util/rnd.js';
+import { useLoops } from './util/use-loops.js';
 
 /** @type {function(Main.PickedState): number[]} */
-export const IndexList = R.converge(R.map, [R.compose(R.add, _.Offset(game.mapSize)), _.Shape(shapeDic)]);
+export const IndexList = R.converge(R.map, [R.compose(R.add, Offset(game.mapSize)), Shape(shapeDic)]);
 
 /** @returns {Main.State} */
 export function useState() {
-  const shapeStatusLoop = _.useLoops(0, ['active', 'hold']);
-  const playStatusLoop = _.useLoops(0, ['paused', 'playing']);
-  const angleLoop = _.useLoops(0, R.range(0,4));
+  const shapeStatusLoop = useLoops(0, ['active', 'hold']);
+  const playStatusLoop = useLoops(0, ['paused', 'playing']);
+  const angleLoop = useLoops(0, R.range(0,4));
 
   return {
     score: 0,
@@ -25,7 +28,7 @@ export function useState() {
     },
 
     angle: angleLoop.value(),
-    letter: _.RndLetter(shapeDic),
+    letter: RndLetter(shapeDic),
     
     inferNextAngle: angleLoop.next,
     inferPrevAngle: angleLoop.prev,
@@ -36,7 +39,7 @@ export function useState() {
     get indexList() {
       return IndexList(this);
     },
-    classNameList: _.ClassNameList(game.squaresNum),
+    classMapList: ClassMapList(game.squaresNum),
     get squares() {
       return Array.from(game.mainElem.children);
     },

@@ -1,15 +1,17 @@
+import { Offset, Shape } from './util/index.js';
+import { ClassMapList } from './util/dom.js';
+import { RndLetter } from './util/rnd.js';
 import { game, perdictDic } from './const.js';
-import * as _ from './tool.js';
 
 /** @type {function(Main.PickedState): number[]} */
-const IndexList = R.converge(R.map, [R.compose(R.add, _.Offset(game.predictSize)), _.Shape(perdictDic)]);
+const IndexList = R.converge(R.map, [R.compose(R.add, Offset(game.predictSize)), Shape(perdictDic)]);
 
 /** @returns {Main.Predict} */
 export function usePredict() {
   return {
     info: {
       angle: 0,
-      letter: _.RndLetter(perdictDic),
+      letter: RndLetter(perdictDic),
     },
     get position() {
       return {
@@ -20,12 +22,12 @@ export function usePredict() {
     get indexList() {
       return IndexList( R.mergeRight(this.position,this.info) );
     },
-    classNameList: _.ClassNameList( Math.pow(game.predictSize.col,2) ),
+    classMapList: ClassMapList( Math.pow(game.predictSize.col,2) ),
     get squares() {
       return Array.from(game.predictElem.children);
     },
     nextShape() {
-      this.info.letter = _.RndLetter(perdictDic);
+      this.info.letter = RndLetter(perdictDic);
     },
   };
 }

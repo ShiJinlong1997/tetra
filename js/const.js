@@ -87,20 +87,3 @@ export const isAtEdge = R.curry(
 
 /** @type {function(MoveTo): number} */
 export const ColEdge = R.prop(R.__, { left: 0, right: game.mapSize.col - 1 });
-
-function O() {
-  return [];
-}
-
-function LEven() {
-
-}
-
-export const shapeValidateDic = {
-  L: [
-    [1,game.mapSize.col+1,game.mapSize.col*2+1,2],
-    [game.mapSize.col,game.mapSize.col+1,game.mapSize.col+2,game.mapSize.col*2+2],
-    [1,game.mapSize.col+1,game.mapSize.col*2+1,game.mapSize.col*2],
-    [game.mapSize.col,game.mapSize.col*2,game.mapSize.col*2+1,game.mapSize.col*2+2],
-  ],
-};
