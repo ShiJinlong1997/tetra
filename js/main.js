@@ -255,7 +255,7 @@ const ListenerFrom = Key => R.compose( R.call, Listener, Key );
 
 addEventListener('keyup', R.when( isPlaying, ListenerFrom(R.prop('code')) ));
 
-document.querySelectorAll('.arrow > button').forEach(elem => {
+document.querySelectorAll('button[data-code]').forEach(elem => {
   elem.addEventListener('click', R.when(
     isPlaying,
     ListenerFrom( R.path(['currentTarget', 'dataset', 'code']) )

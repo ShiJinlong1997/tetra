@@ -4,17 +4,22 @@
 
 body { margin: 0; }
 
+body > div {
+  width: 100%;
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+button svg path { fill: #fff; }
+
 #stage {
   --square-size: 16px;
   display: grid;
   grid-template-columns: repeat(2,auto);
-  gap: 10px;
-  width: 100%;
-  max-width: 320px;
+  gap: 14px 10px;
   padding-left: 24px;
   padding-right: 24px;
-  margin-left: auto;
-  margin-right: auto;
   margin-bottom: 1em;
 }
 
@@ -28,14 +33,14 @@ main {
   grid-template-rows: repeat((var(--rows), var(--square-size)));
   width: calc(var(--cols) * var(--square-size) + 2px);
   height: calc(var(--rows) * var(--square-size) + 2px);
-  border: 1px solid #000;
+  border: 1px solid #444;
 }
 
 :where(main, #predict) > div {
   --outline-width: 2px;
   width: var(--square-size);
   height: var(--square-size);
-  background-color: #000;
+  background-color: #444;
   outline: var(--outline-width) solid #fff;
   outline-offset: calc(var(--outline-width) * -1 - 2px);
   opacity: .04;
@@ -51,11 +56,12 @@ aside {
     '.' auto
     '.' 24px
     'predict' auto
-    '.' 1fr
+    '.' 24px
     'switch' auto
     '.' 24px
     'arrow' auto;
   justify-items: center;
+  align-content: start;
   width: max-content;
 }
 
@@ -75,7 +81,7 @@ aside {
   height: var(--height);
   border: 0;
   vertical-align: top;
-  font-size: 16px;
+  font-size: 15px;
   color: #fff;
   background-repeat: no-repeat;
   background-image: linear-gradient(180deg, hsla(0,0%,100%,.3), transparent);
@@ -87,36 +93,44 @@ aside {
 #switch.playing { --background-color: rgb(170,85,85); }
 #switch.paused { --background-color: rgb(85,170,85); }
 
-#switch > svg { vertical-align: -.1em; }
-#switch > svg path { fill: #fff; }
+#switch > svg { vertical-align: -.05em; }
 
-.arrow {
-  grid-area: arrow;
-  display: grid;
-  place-items: center;
-  grid-template-areas:
-    '.    up   .'
-    'left . right'
-    '.   down  .';
-  width: max-content;
+.control-panel {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  column-gap: 1em;
 }
 
-.arrow :nth-child(even) {
-  line-height: 1.3;
-}
-
-.arrow > button {
-  width: 24px;
-  height: 24px;
+.control-panel button {
   padding: 0;
   border: 0;
-  color: #fff;
-  font-size: 20px;
+  font-size: 14px;
   background-repeat: no-repeat;
   background-image: linear-gradient(180deg, hsla(0,0%,100%,.3), transparent);
   background-color: #58a;
-  text-shadow: 0 -.05em .05em rgba(0,0,0,.5);
-  border-radius: 30%;
+  border-radius: 50%;
 }
 
-.arrow > button > svg path { fill: #fff; }
+.arrow {
+  display: flex;
+  column-gap: 1em;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 5em;
+}
+
+.arrow > button {
+  width: 2.2em;
+  height: 2.2em;
+}
+
+button[data-code="ArrowUp"] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 4.5em;
+  height: 4.5em;
+  border-radius: 50%;
+}
