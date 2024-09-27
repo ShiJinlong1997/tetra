@@ -2,7 +2,7 @@
 *::before,
 *::after { box-sizing: border-box; }
 
-:root { --vw: min(500px, 100vw); }
+:root { --vw: min(500px, 90vw); }
 
 html { font-size: calc(100 * (var(--vw) / 750)); }
 
@@ -38,7 +38,6 @@ button svg path { fill: #fff; }
 main {
   --cols: 10;
   --rows: 20;
-  justify-self: end;
   overflow: hidden;
   display: grid;
   grid-template-columns: repeat(var(--cols), var(--square-size));
@@ -79,7 +78,7 @@ aside {
 }
 
 #switch {
-  --height: 2em;
+  --height: 2.5em;
   grid-area: switch;
   justify-self: stretch;
   height: var(--height);
@@ -101,7 +100,7 @@ aside {
 .control-panel {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: end;
   column-gap: 1em;
 }
 
@@ -115,7 +114,7 @@ aside {
 }
 
 .arrow {
-  --button-size: 2.2em;
+  --button-size: 2.5em;
   --column-gap: 1em;
   display: flex;
   column-gap: var(--column-gap);
@@ -130,10 +129,6 @@ aside {
 }
 
 button[data-code="ArrowUp"] {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   width: 4.5em;
   height: 4.5em;
   border-radius: 50%;
