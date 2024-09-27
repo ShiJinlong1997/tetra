@@ -2,44 +2,47 @@
 *::before,
 *::after { box-sizing: border-box; }
 
-body { margin: 0; }
+html { font-size: calc(100 * (min(500px,100vw) / 750)); }
+
+body {
+  margin: 0;
+  font-size: .28em;
+}
 
 body > div {
-  width: 100%;
-  max-width: 320px;
+  max-width: 500px;
   margin-left: auto;
   margin-right: auto;
 }
 
+svg {
+  width: 1em;
+  height: 1em;
+}
+
+button { font-size: 1em; }
 button svg path { fill: #fff; }
 
 #stage {
-  --square-size: 16px;
   display: grid;
-  grid-template-columns: repeat(2,auto);
-  gap: 14px 10px;
-  padding-left: 24px;
-  padding-right: 24px;
+  grid-template-columns: .7fr .3fr;
+  gap: .28rem .2rem;
+  padding-left: .48rem;
+  padding-right: .48rem;
   margin-bottom: 1em;
 }
 
 main {
-  --rows: 20;
   --cols: 10;
-  justify-self: end;
   overflow: hidden;
   display: grid;
-  grid-template-columns: repeat(var(--cols), var(--square-size));
-  grid-template-rows: repeat((var(--rows), var(--square-size)));
-  width: calc(var(--cols) * var(--square-size) + 2px);
-  height: calc(var(--rows) * var(--square-size) + 2px);
+  grid-template-columns: repeat(var(--cols), 10%);
   border: 1px solid #444;
 }
 
 :where(main, #predict) > div {
   --outline-width: 2px;
-  width: var(--square-size);
-  height: var(--square-size);
+  aspect-ratio: 1 / 1;
   background-color: #444;
   outline: var(--outline-width) solid #fff;
   outline-offset: calc(var(--outline-width) * -1 - 2px);
@@ -49,39 +52,33 @@ main {
 :where(main, #predict) > div.show { opacity: 1; }
 
 aside {
-  --size: calc(4 * var(--square-size));
   display: grid;
   grid-template:
     '.' auto
     '.' auto
-    '.' 24px
+    '.' 1.71em
     'predict' auto
-    '.' 24px
+    '.' 1fr
     'switch' auto
-    '.' 24px
-    'arrow' auto;
+    '.' 1.71em;
   justify-items: center;
   align-content: start;
-  width: max-content;
 }
 
 #predict {
   grid-area: predict;
   display: grid;
-  grid-template-columns: repeat(4,var(--square-size));
-  grid-template-rows: repeat(4,var(--square-size));
-  width: var(--size);
-  height: var(--size);
+  grid-template-columns: repeat(4, 25%);
+  width: 80%;
 }
 
 #switch {
-  --height: 30px;
+  --height: 2em;
   grid-area: switch;
   justify-self: stretch;
   height: var(--height);
   border: 0;
   vertical-align: top;
-  font-size: 15px;
   color: #fff;
   background-repeat: no-repeat;
   background-image: linear-gradient(180deg, hsla(0,0%,100%,.3), transparent);
@@ -93,7 +90,7 @@ aside {
 #switch.playing { --background-color: rgb(170,85,85); }
 #switch.paused { --background-color: rgb(85,170,85); }
 
-#switch > svg { vertical-align: -.05em; }
+#switch > svg { vertical-align: -.2em; }
 
 .control-panel {
   display: flex;
@@ -105,7 +102,6 @@ aside {
 .control-panel button {
   padding: 0;
   border: 0;
-  font-size: 14px;
   background-repeat: no-repeat;
   background-image: linear-gradient(180deg, hsla(0,0%,100%,.3), transparent);
   background-color: #58a;
@@ -113,16 +109,18 @@ aside {
 }
 
 .arrow {
+  --button-size: 2.2em;
+  --column-gap: 1em;
   display: flex;
-  column-gap: 1em;
+  column-gap: var(--column-gap);
   flex-wrap: wrap;
   justify-content: center;
-  width: 5em;
+  width: calc(var(--button-size) * 2 + var(--column-gap));
 }
 
 .arrow > button {
-  width: 2.2em;
-  height: 2.2em;
+  width: var(--button-size);
+  height: var(--button-size);
 }
 
 button[data-code="ArrowUp"] {
@@ -133,4 +131,9 @@ button[data-code="ArrowUp"] {
   width: 4.5em;
   height: 4.5em;
   border-radius: 50%;
+}
+
+button[data-code="ArrowUp"] svg {
+  width: 2.5em;
+  height: 2.5em;
 }
