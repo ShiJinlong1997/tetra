@@ -2,7 +2,9 @@
 *::before,
 *::after { box-sizing: border-box; }
 
-html { font-size: calc(100 * (min(500px,100vw) / 750)); }
+:root { --vw: min(500px, 100vw); }
+
+html { font-size: calc(100 * (var(--vw) / 750)); }
 
 body {
   margin: 0;
@@ -10,7 +12,7 @@ body {
 }
 
 body > div {
-  max-width: 500px;
+  width: var(--vw);
   margin-left: auto;
   margin-right: auto;
 }
@@ -24,8 +26,9 @@ button { font-size: 1em; }
 button svg path { fill: #fff; }
 
 #stage {
+  --square-size: calc((var(--vw) * .6 - 2px) * .1);
   display: grid;
-  grid-template-columns: .7fr .3fr;
+  grid-template-columns: auto 1fr;
   gap: .28rem .2rem;
   padding-left: .48rem;
   padding-right: .48rem;
@@ -34,9 +37,12 @@ button svg path { fill: #fff; }
 
 main {
   --cols: 10;
+  --rows: 20;
+  justify-self: end;
   overflow: hidden;
   display: grid;
-  grid-template-columns: repeat(var(--cols), 10%);
+  grid-template-columns: repeat(var(--cols), var(--square-size));
+  height: calc(var(--rows) * var(--square-size));
   border: 1px solid #444;
 }
 
