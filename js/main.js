@@ -3,9 +3,14 @@ import { Icon, game, isAtEdge, ColEdge } from './const.js';
 import { IndexList, useState } from './use-state.js';
 import { usePredict } from './use-predict.js';
 import { Offset, Sign } from './util/index.js';
+import { useKeyboard } from './hook/use-keyboard.js';
+import { useInterval } from './hook/use-interval.js';
 
+const { addAllowDefault, addKeyDown, addKeyUp, operateMap, reestOperateMap, listenShortcutKey } = useKeyboard(['ArrowUp','ArrowRight','ArrowLeft','ArrowDown']);
 const state = useState();
 const predict = usePredict();
+
+const NextIndexList = R.map(R.add(game.mapSize.col));
 
 const inferIndexList = source => R.compose(
   IndexList,
@@ -35,10 +40,8 @@ const setClass = ClassHandler(R.forEach, Object.assign);
 const addClass = setClass(inferMap('add'));
 const delClass = setClass(inferMap('delete'));
 
-/** 方块变形 */
+/** 方块旋转 */
 function rotate() {
-  togglePlayStatus();
-  delClass(['show'], state);
   // 假设
   // 这次 inferNextAngle() 判定为 invalid，
   // 闭包的 i 已变化，
@@ -65,11 +68,11 @@ function rotate() {
     R.tap(angle => (state.angle = angle)),
     state.inferPrevAngle,
   )(nextAngle);
-  addClass(['show'], state);
-  render(state);
-  freeze();
+  // addClass(['show'], state);
+  // render(state);
+  freeze(isNeedTakenFalled(state.indexList));
   addScore();
-  togglePlayStatus();
+  gameOver();
 }
 
 /**
@@ -77,8 +80,6 @@ function rotate() {
  * @param {Main.MoveTo} to 
  */
 function move(to) {
-  togglePlayStatus();
-  delClass(['show'], state);
   const nextCol = state.col + Sign(to);
   const Source = R.compose( R.zipObj(['col']), Array.of );
 
@@ -88,40 +89,136 @@ function move(to) {
   ]);
 
   R.when( isValid, R.tap(col => (state.col = col)) )(nextCol);
+}
+
+/** @type {function(Main.UseRender['indexList']): boolean} */
+const isNeedTakenFalled = R.compose( anyTaken, NextIndexList );
+
+const { addInterval, resetAllInterval } = useInterval();
+
+const natureFallFrame = addInterval(
+  R.when(
+    () => R.compose( R.all(R.propEq('keyup', 'status')), R.values )(operateMap),
+    () => {
+      // 若下一行能去则去
+      // 否则固化
+      R.ifElse(
+        isNeedTakenFalled,
+        () => {
+          freeze(true);
+          addScore();
+          gameOver();
+        },
+        () => (state.row += 1),
+      )(state.indexList);
+    }
+  ),
+  500
+);
+
+const arrowUpFrame = addInterval(
+  R.when(
+    () => R.where(
+      {
+        status: R.equals('keydown'),
+        accept: Boolean,
+      },
+      operateMap.ArrowUp
+    ),
+    () => {
+      operateMap.ArrowUp.accept = false;
+      resetAllInterval();
+      rotate();
+    }
+  ),    
+  0
+);
+
+const arrowDownFrame = addInterval(
+  R.when(
+    () => R.all(Boolean, [
+      R.propEq('keydown', 'status', operateMap.ArrowDown),
+      R.compose(
+        R.not,
+        anyTaken,
+        NextIndexList,
+        (state.indexList)
+      )
+    ]),
+    () => {
+      state.row += 1;
+      freeze(isNeedTakenFalled(state.indexList));
+      addScore();
+      gameOver();
+    }
+  ),
+  100
+);
+
+const arrowLeftFrame = addInterval(
+  R.when(
+    () => R.propEq('keydown', 'status', operateMap.ArrowLeft),
+    () => {
+      resetAllInterval();
+      move('left');
+    },
+  ),
+  100
+);
+
+const arrowRightFrame = addInterval(
+  R.when(
+    () => R.propEq('keydown', 'status', operateMap.ArrowRight),
+    () => {
+      resetAllInterval();
+      move('right');
+    },
+  ),
+  100
+);
+
+/**
+ * 动画帧 callback
+ * @param {number} timestamp 
+ */
+function run(timestamp) {
+  // 时刻检测是因为左右下三按键想快速响应
+  // 唯独自然下降的需要间隔
+  game.timerId = requestAnimationFrame(run);
+  const elapsed = timestamp - game.lastTime;
+  game.lastTime = timestamp;
+  
+  delClass(['show'], state);
+  
+  R.forEach(
+    R.apply(R.__, [elapsed]),
+    [
+      natureFallFrame.go,
+      arrowUpFrame.go,
+      arrowDownFrame.go,
+      arrowLeftFrame.go,
+      arrowRightFrame.go
+    ],
+  );
+
   addClass(['show'], state);
   render(state);
-  freeze();
-  addScore();
-  togglePlayStatus();
 }
 
-function run() {
-  if (R.equals('active', state.shapeStatus)) {
-    delClass(['show'], state);
-    ++state.row;
-    addClass(['show'], state);
-    render(state);
-    state.toggleShapeStatus();
-  } else {
-    freeze();
-    addScore();
-    gameOver();
-    state.toggleShapeStatus();
-  }
-}
-
-function freeze() {
-  const nextRow = R.map(R.add(game.mapSize.col), state.indexList);
-  if (anyTaken(nextRow)) {
-    addClass(['taken'], state);
-
+/**
+ * 使当前形状定身
+ * @param {boolean} pred 判断形状是否需要定身
+ */
+function freeze(cond) {
+  if (cond) {
+    addClass(['taken', 'show'], state);
+  
     state.nextShape(predict);
     delClass(['show'], predict);
     predict.nextShape();
     addClass(['show'], predict);
-
+  
     render(predict);
-    // 先别调 render(state)，因为 addScore() 消行会使形状下降
   }
 }
 
@@ -148,9 +245,6 @@ function addScore() {
   // 消行使形状下降
   // 重分配 state.classMapList
   // 再调 render(state)
-  delClass(['show'], state);
-  addClass(['show'], state);
-  render(state);
   state.score += fullRows.length;
   game.scoreElem.innerText = String(state.score);
 }
@@ -166,14 +260,12 @@ function gameOver() {
 
 function togglePlayStatus() {
   state.togglePlayStatus();
-  const playing = isPlaying();
+  const playing = R.propEq('playing', 'playStatus', state);
 
   game.switchElem.innerHTML = playing ? `${Icon.pause} 暂停` : `${Icon.play} 继续`;
   game.switchElem.className = state.playStatus;
-
-  playing
-    ? state.timerId = setInterval(run, 500)
-    : clearInterval(state.timerId);
+  
+  playing ? run(game.lastTime) : cancelAnimationFrame(game.timerId);
 }
 
 /**
@@ -185,17 +277,6 @@ function render({ classMapList, squares }) {
     squares[i].className = toClassName(set);
   })
 }
-
-const ListenerMap = {
-  ArrowUp: rotate,
-  ArrowRight: () => move('right'),
-  ArrowLeft: () => move('left'),
-  ArrowDown: run,
-};
-
-const Listener = R.propOr(R.F, R.__, ListenerMap);
-
-const isPlaying = () => R.propEq('playing', 'playStatus', state);
 
 function initSquares() {
   game.mainElem.innerHTML = DivElems(game.squaresNum);
@@ -213,8 +294,13 @@ function initSquares() {
   render(state);
 }
 
+/** 点击开始按钮被调用 */
 function init() {
+  resetAllInterval();
+  reestOperateMap();
+  
   state.score = 0;
+  game.lastTime = 0;
   game.scoreElem.innerText = String(state.score);
   
   R.compose(
@@ -247,17 +333,74 @@ function main() {
   
   game.switchElem.addEventListener('click', togglePlayStatus);
   game.switchElem.addEventListener('click', init, { once: true });
+
+  listenShortcutKey();
+  R.forEach(
+    addAllowDefault,
+    R.map(R.propEq(R.__, 'key', R.__), ['F5','F11','F12'])
+  );
+  const isKeyUp = key => R.propEq('keyup', 'status', operateMap[key]);
+
+  // 上箭头=旋转
+  // 按下即旋转，但仅此一次
+  // 抬起再接受下一次按下
+  addKeyDown(
+    () => isKeyUp('ArrowDown'),
+    () => (operateMap.ArrowUp.status = 'keydown'),
+    ['ArrowUp']
+  );
+
+  addKeyUp(
+    R.T,
+    () => {
+      operateMap.ArrowUp.status = 'keyup';
+      operateMap.ArrowUp.accept = true;
+    },
+    ['ArrowUp']
+  );
+
+  // 下箭头=下降
+  // 长按即生效
+  // 抬起即失效
+  addKeyDown(
+    () => isKeyUp('ArrowUp'),
+    () => (operateMap.ArrowDown.status = 'keydown'),
+    ['ArrowDown']
+  );
+
+  addKeyUp(
+    R.T,
+    () => (operateMap.ArrowDown.status = 'keyup'),
+    ['ArrowDown']
+  );
+
+  // 左（右）箭头=左移
+  // 左右互悖
+  // 按下即移动
+  // 抬起即失效
+  addKeyDown(
+    () => isKeyUp('ArrowRight'),
+    () => (operateMap.ArrowLeft.status = 'keydown'),
+    ['ArrowLeft']
+  );
+
+  addKeyUp(
+    R.T,
+    () => (operateMap.ArrowLeft.status = 'keyup'),
+    ['ArrowLeft']
+  );
+
+  addKeyDown(
+    () => isKeyUp('ArrowRight'),
+    () => (operateMap.ArrowRight.status = 'keydown'),
+    ['ArrowRight']
+  );
+
+  addKeyUp(
+    R.T,
+    () => (operateMap.ArrowRight.status = 'keyup'),
+    ['ArrowRight']
+  );
 }
 
 main();
-
-const ListenerFrom = Key => R.compose( R.call, Listener, Key );
-
-addEventListener('keyup', R.when( isPlaying, ListenerFrom(R.prop('code')) ));
-
-document.querySelectorAll('button[data-code]').forEach(elem => {
-  elem.addEventListener('click', R.when(
-    isPlaying,
-    ListenerFrom( R.path(['currentTarget', 'dataset', 'code']) )
-  ));
-})

@@ -4,6 +4,8 @@ export const Icon = {
 };
 
 export const game = {
+  timerId: -1,
+  lastTime: 0,
   get mapSize() {
     return { row: 20, col: 10 };
   },

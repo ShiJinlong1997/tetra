@@ -9,18 +9,11 @@ export const IndexList = R.converge(R.map, [R.compose(R.add, Offset(game.mapSize
 
 /** @returns {Main.State} */
 export function useState() {
-  const shapeStatusLoop = useLoops(0, ['active', 'hold']);
   const playStatusLoop = useLoops(0, ['paused', 'playing']);
   const angleLoop = useLoops(0, R.range(0,4));
 
   return {
     score: 0,
-    timerId: -1,
-
-    shapeStatus: shapeStatusLoop.value(),
-    toggleShapeStatus() {
-      this.shapeStatus = shapeStatusLoop.next();
-    },
 
     playStatus: playStatusLoop.value(),
     togglePlayStatus() {
