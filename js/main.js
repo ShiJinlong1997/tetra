@@ -1,16 +1,18 @@
 import { ClassHandler, DivElems, inferMap, toClassName } from './util/dom.js';
-import { Icon, game, isAtEdge, ColEdge } from './const.js';
+import { Icon, game } from './const.js';
 import { IndexList, useState } from './use-state.js';
 import { usePredict } from './use-predict.js';
 import { Offset, Sign } from './util/index.js';
 import { useKeyboard } from './hook/use-keyboard.js';
 import { useInterval } from './hook/use-interval.js';
+import { useMove } from './operate/move.js';
+import { useFall } from './operate/fall.js';
+import { useRotate } from './operate/rotate.js';
 
-const { addAllowDefault, addKeyDown, addKeyUp, operateMap, reestOperateMap, listenShortcutKey } = useKeyboard(['ArrowUp','ArrowRight','ArrowLeft','ArrowDown']);
+const { addAllowDefault, addKeyDown, addKeyUp, OperateMap, reestOperateMap, listenShortcutKey } = useKeyboard();
+const operateMap = OperateMap(['ArrowUp','ArrowRight','ArrowLeft','ArrowDown']);
 const state = useState();
 const predict = usePredict();
-
-const NextIndexList = R.map(R.add(game.mapSize.col));
 
 const inferIndexList = source => R.compose(
   IndexList,
@@ -36,146 +38,16 @@ const anyTaken = detectTaken(R.any);
 /** @type {function(number[]): boolean} */
 const allTaken = detectTaken(R.all);
 
-const setClass = ClassHandler(R.forEach, Object.assign);
-const addClass = setClass(inferMap('add'));
-const delClass = setClass(inferMap('delete'));
-
-/** 方块旋转 */
-function rotate() {
-  // 假设
-  // 这次 inferNextAngle() 判定为 invalid，
-  // 闭包的 i 已变化，
-  // 这次 inferNextAngle() 判定为 valid，
-  // i 就不是期望值，所以 invalid 需要 inferPrevAngle()
-  const nextAngle = state.inferNextAngle();
-  const Source = R.compose( R.zipObj(['angle']), Array.of );
-
-  // 一组方块中的小方块不可能又有在最左边，又有在最右边的
-  const isValid = R.compose(
-    R.allPass([
-      R.compose( R.not, anyTaken ),
-      R.compose(
-        R.not,
-        R.allPass([ isAtEdge(ColEdge('left')), isAtEdge(ColEdge('right')) ])
-      ),
-    ]),
-    inferIndexList,
-    Source,
-  );
-
-  R.ifElse(
-    isValid,
-    R.tap(angle => (state.angle = angle)),
-    state.inferPrevAngle,
-  )(nextAngle);
-  // addClass(['show'], state);
-  // render(state);
-  freeze(isNeedTakenFalled(state.indexList));
-  addScore();
-  gameOver();
-}
-
-/**
- * 左右移动
- * @param {Main.MoveTo} to 
- */
-function move(to) {
-  const nextCol = state.col + Sign(to);
-  const Source = R.compose( R.zipObj(['col']), Array.of );
-
-  const isValid = R.allPass([
-    R.compose( R.not, anyTaken, inferIndexList, Source ),
-    R.compose( R.not, isAtEdge(ColEdge(to)), IndexList, R.always(state) ),
-  ]);
-
-  R.when( isValid, R.tap(col => (state.col = col)) )(nextCol);
-}
+const NextIndexList = R.map(R.add(game.mapSize.col));
 
 /** @type {function(Main.UseRender['indexList']): boolean} */
 const isNeedTakenFalled = R.compose( anyTaken, NextIndexList );
 
-const { addInterval, resetAllInterval } = useInterval();
+const setClass = ClassHandler(R.forEach, Object.assign);
+const addClass = setClass(inferMap('add'));
+const delClass = setClass(inferMap('delete'));
 
-const natureFallFrame = addInterval(
-  R.when(
-    () => R.compose( R.all(R.propEq('keyup', 'status')), R.values )(operateMap),
-    () => {
-      // 若下一行能去则去
-      // 否则固化
-      R.ifElse(
-        isNeedTakenFalled,
-        () => {
-          freeze(true);
-          addScore();
-          gameOver();
-        },
-        () => (state.row += 1),
-      )(state.indexList);
-    }
-  ),
-  500
-);
-
-const arrowUpFrame = addInterval(
-  R.when(
-    () => R.where(
-      {
-        status: R.equals('keydown'),
-        accept: Boolean,
-      },
-      operateMap.ArrowUp
-    ),
-    () => {
-      operateMap.ArrowUp.accept = false;
-      resetAllInterval();
-      rotate();
-    }
-  ),    
-  0
-);
-
-const arrowDownFrame = addInterval(
-  R.when(
-    () => R.all(Boolean, [
-      R.propEq('keydown', 'status', operateMap.ArrowDown),
-      R.compose(
-        R.not,
-        anyTaken,
-        NextIndexList,
-        (state.indexList)
-      )
-    ]),
-    () => {
-      state.row += 1;
-      freeze(isNeedTakenFalled(state.indexList));
-      addScore();
-      gameOver();
-    }
-  ),
-  100
-);
-
-const arrowLeftFrame = addInterval(
-  R.when(
-    () => R.propEq('keydown', 'status', operateMap.ArrowLeft),
-    () => {
-      resetAllInterval();
-      move('left');
-    },
-  ),
-  100
-);
-
-const arrowRightFrame = addInterval(
-  R.when(
-    () => R.propEq('keydown', 'status', operateMap.ArrowRight),
-    () => {
-      resetAllInterval();
-      move('right');
-    },
-  ),
-  100
-);
+const intervalStore = useInterval();
 
 /**
  * 动画帧 callback
@@ -189,18 +61,7 @@ function run(timestamp) {
   game.lastTime = timestamp;
   
   delClass(['show'], state);
-  
-  R.forEach(
-    R.apply(R.__, [elapsed]),
-    [
-      natureFallFrame.go,
-      arrowUpFrame.go,
-      arrowDownFrame.go,
-      arrowLeftFrame.go,
-      arrowRightFrame.go
-    ],
-  );
-
+  intervalStore.go(elapsed);
   addClass(['show'], state);
   render(state);
 }
@@ -296,8 +157,8 @@ function initSquares() {
 
 /** 点击开始按钮被调用 */
 function init() {
-  resetAllInterval();
-  reestOperateMap();
+  intervalStore.reset();
+  reestOperateMap(operateMap);
   
   state.score = 0;
   game.lastTime = 0;
@@ -326,80 +187,23 @@ function init() {
 }
 
 function main() {
+  const context = { state, operateMap, intervalStore, addKeyDown, addKeyUp, freeze, addScore, gameOver, inferIndexList, NextIndexList, isNeedTakenFalled, anyTaken };
+  useFall(context);
+  useMove(context);
+  useRotate(context);
+
   initSquares();
   game.scoreElem.innerText = String(state.score);
   game.predictElem.innerHTML = DivElems(16);
   game.switchElem.innerHTML = `${Icon.play} 开始`;
   
-  game.switchElem.addEventListener('click', togglePlayStatus);
   game.switchElem.addEventListener('click', init, { once: true });
+  game.switchElem.addEventListener('click', togglePlayStatus);
 
   listenShortcutKey();
   R.forEach(
     addAllowDefault,
     R.map(R.propEq(R.__, 'key', R.__), ['F5','F11','F12'])
-  );
-  const isKeyUp = key => R.propEq('keyup', 'status', operateMap[key]);
-
-  // 上箭头=旋转
-  // 按下即旋转，但仅此一次
-  // 抬起再接受下一次按下
-  addKeyDown(
-    () => isKeyUp('ArrowDown'),
-    () => (operateMap.ArrowUp.status = 'keydown'),
-    ['ArrowUp']
-  );
-
-  addKeyUp(
-    R.T,
-    () => {
-      operateMap.ArrowUp.status = 'keyup';
-      operateMap.ArrowUp.accept = true;
-    },
-    ['ArrowUp']
-  );
-
-  // 下箭头=下降
-  // 长按即生效
-  // 抬起即失效
-  addKeyDown(
-    () => isKeyUp('ArrowUp'),
-    () => (operateMap.ArrowDown.status = 'keydown'),
-    ['ArrowDown']
-  );
-
-  addKeyUp(
-    R.T,
-    () => (operateMap.ArrowDown.status = 'keyup'),
-    ['ArrowDown']
-  );
-
-  // 左（右）箭头=左移
-  // 左右互悖
-  // 按下即移动
-  // 抬起即失效
-  addKeyDown(
-    () => isKeyUp('ArrowRight'),
-    () => (operateMap.ArrowLeft.status = 'keydown'),
-    ['ArrowLeft']
-  );
-
-  addKeyUp(
-    R.T,
-    () => (operateMap.ArrowLeft.status = 'keyup'),
-    ['ArrowLeft']
-  );
-
-  addKeyDown(
-    () => isKeyUp('ArrowRight'),
-    () => (operateMap.ArrowRight.status = 'keydown'),
-    ['ArrowRight']
-  );
-
-  addKeyUp(
-    R.T,
-    () => (operateMap.ArrowRight.status = 'keyup'),
-    ['ArrowRight']
   );
 }
 

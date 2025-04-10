@@ -11,7 +11,7 @@ const MatchModifiersOf = xs => event => R.converge(equals, [
   R.always( modifiersMatch(xs) ),
 ])(event);
 
-export function useKeyboard(codes) {
+export function useKeyboard() {
   function Operate() {
     return {
       accept: true,
@@ -23,17 +23,17 @@ export function useKeyboard(codes) {
   /** @typedef {'ArrowUp' | 'ArrowRight' | 'ArrowLeft' | 'ArrowDown'} OperateKey */
   
   /**
-   * @type {Record<OperateKey, ReturnType<Operate>}>}
+   * @type {function(OperateKey[]): Record<OperateKey, ReturnType<Operate>}>}
    */
- const operateMap = R.converge(R.zipObj, [
-   R.identity,
-   R.compose( R.times(Operate), R.length )
-  ])(codes);
+  const OperateMap = R.converge(R.zipObj, [
+    R.identity,
+    R.compose( R.times(Operate), R.length )
+  ]);
 
-  function reestOperateMap() {
+  function reestOperateMap(map) {
     R.forEach(
       o => Object.assign(o, Operate()),
-      R.values(operateMap)
+      R.values(map)
     )
   };
 
@@ -140,7 +140,7 @@ export function useKeyboard(codes) {
     addKeyDownFirstFrame,
     addKeyDown,
     addKeyUp,
-    operateMap,
+    OperateMap,
     reestOperateMap,
     listenShortcutKey,
   };

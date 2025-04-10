@@ -2,7 +2,7 @@ import { game, shapeDic } from './const.js';
 import { ClassMapList } from './util/dom.js';
 import { Offset, Shape } from './util/index.js';
 import { RndLetter } from './util/rnd.js';
-import { useLoops } from './util/use-loops.js';
+import { useLoops } from './hook/use-loops.js';
 
 /** @type {function(Main.PickedState): number[]} */
 export const IndexList = R.converge(R.map, [R.compose(R.add, Offset(game.mapSize)), Shape(shapeDic)]);

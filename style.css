@@ -22,7 +22,11 @@ svg {
   height: 1em;
 }
 
-button { font-size: 1em; }
+button {
+  font-size: 1em;
+  user-select: none;
+}
+
 button svg path { fill: #fff; }
 
 #stage,
