@@ -1,8 +1,8 @@
 import { ClassHandler, DivElems, inferMap, toClassName } from './util/dom.js';
-import { Icon, game } from './const.js';
+import { game } from './const.js';
 import { IndexList, useState } from './use-state.js';
 import { usePredict } from './use-predict.js';
-import { Offset, Sign } from './util/index.js';
+import { Offset } from './util/index.js';
 import { useKeyboard } from './hook/use-keyboard.js';
 import { useInterval } from './hook/use-interval.js';
 import { useMove } from './operate/move.js';
@@ -38,10 +38,11 @@ const anyTaken = detectTaken(R.any);
 /** @type {function(number[]): boolean} */
 const allTaken = detectTaken(R.all);
 
+/** @type {function(number[]): number[]} */
 const NextIndexList = R.map(R.add(game.mapSize.col));
 
 /** @type {function(Main.UseRender['indexList']): boolean} */
-const isNeedTakenFalled = R.compose( anyTaken, NextIndexList );
+const isNeedTakenFallen = R.compose( anyTaken, NextIndexList );
 
 const setClass = ClassHandler(R.forEach, Object.assign);
 const addClass = setClass(inferMap('add'));
@@ -68,7 +69,7 @@ function run(timestamp) {
 
 /**
  * 使当前形状定身
- * @param {boolean} pred 判断形状是否需要定身
+ * @param {boolean} cond 判断形状是否需要定身
  */
 function freeze(cond) {
   if (cond) {
@@ -114,8 +115,8 @@ function gameOver() {
   if (anyTaken(state.indexList)) {
     alert('游戏结束');
     togglePlayStatus();
-    game.switchElem.innerHTML = `${Icon.play} 再来`;
-    game.switchElem.addEventListener('click', init, { once: true });
+    // game.switchElem.innerHTML = `${Icon.play} 再来`;
+    game.switchElem.addEventListener('touchend', init, { once: true });
   }
 }
 
@@ -123,7 +124,7 @@ function togglePlayStatus() {
   state.togglePlayStatus();
   const playing = R.propEq('playing', 'playStatus', state);
 
-  game.switchElem.innerHTML = playing ? `${Icon.pause} 暂停` : `${Icon.play} 继续`;
+  // game.switchElem.innerHTML = playing ? `${Icon.pause} 暂停` : `${Icon.play} 继续`;
   game.switchElem.className = state.playStatus;
   
   playing ? run(game.lastTime) : cancelAnimationFrame(game.timerId);
@@ -186,25 +187,124 @@ function init() {
   render(predict);
 }
 
+function initStage() {
+  const docSize = {
+    width: document.documentElement.offsetWidth,
+    height: document.documentElement.offsetHeight,
+  };
+
+  const stageSize = {
+    width: Number(game.stageElem.style.getPropertyValue('--stage-width')),
+    height: Number(game.stageElem.style.getPropertyValue('--stage-height')),
+  };
+
+  const scale = Math.min(
+    Math.min(stageSize.width, docSize.width) / Math.min(stageSize.width, docSize.width),
+    Math.min(stageSize.height, docSize.height) / Math.min(stageSize.height, docSize.height)
+  );
+  
+  game.stageElem.style.setProperty('--width', String( Math.min(stageSize.width * devicePixelRatio, docSize.width) ));
+  game.stageElem.style.setProperty('--height', String( Math.min(stageSize.height * devicePixelRatio, docSize.height) ));
+
+  game.stageElem.style.setProperty('--stage-scale', String(scale));
+  game.stageElem.style.setProperty('--scale', String(
+    Math.min(
+      docSize.width / stageSize.width, docSize.width,
+      docSize.height / stageSize.height, docSize.height
+    )
+  ));
+  
+}
+
 function main() {
-  const context = { state, operateMap, intervalStore, addKeyDown, addKeyUp, freeze, addScore, gameOver, inferIndexList, NextIndexList, isNeedTakenFalled, anyTaken };
-  useFall(context);
-  useMove(context);
-  useRotate(context);
+  const context = { state, operateMap, intervalStore, addKeyDown, addKeyUp, freeze, addScore, gameOver, inferIndexList, NextIndexList, isNeedTakenFallen, anyTaken };
+
+  const pushClass = (function() {
+    const SetClass = action => elem => elem.classList[action]('push');
+    return {
+      add: SetClass('add'),
+      del: SetClass('remove'),
+    };
+  })();
+  useFall(
+    Object.assign(
+      {
+        onTaken: () => {
+          freeze(true);
+          addScore();
+          gameOver();
+        },
+        onChange: () => {
+          freeze(isNeedTakenFallen(state.indexList));
+          addScore();
+          gameOver();
+        },
+        onKeyDown: pushClass.add,
+        onKeyUp: pushClass.del,
+        onPointerDown: pushClass.add,
+        onPointerUp: pushClass.del,
+      },
+      context
+    )
+  );
+
+  useMove(
+    Object.assign(
+      {
+        onChange: () => {
+          freeze(isNeedTakenFallen(state.indexList));
+          addScore();
+          gameOver();
+        },
+        onKeyDown: pushClass.add,
+        onKeyUp: pushClass.del,
+        onPointerDown: pushClass.add,
+        onPointerUp: pushClass.del,
+      },
+      context
+    )
+  );
+
+  useRotate(
+    Object.assign(
+      {
+        onChange: () => {
+          freeze(isNeedTakenFallen(state.indexList));
+          addScore();
+          gameOver();
+        },
+        onKeyDown: pushClass.add,
+        onKeyUp: pushClass.del,
+        onPointerDown: pushClass.add,
+        onPointerUp: pushClass.del,
+      },
+      context
+    )
+  );
 
   initSquares();
   game.scoreElem.innerText = String(state.score);
   game.predictElem.innerHTML = DivElems(16);
-  game.switchElem.innerHTML = `${Icon.play} 开始`;
-  
+  // game.switchElem.innerHTML = `${Icon.play} 开始`;
   game.switchElem.addEventListener('click', init, { once: true });
   game.switchElem.addEventListener('click', togglePlayStatus);
+
+  game.switchElem.addEventListener('pointerdown', () => {
+    game.switchElem.classList.add('push');
+  });
+
+  game.switchElem.addEventListener('pointerup', () => {
+    game.switchElem.classList.remove('push');
+  })
 
   listenShortcutKey();
   R.forEach(
     addAllowDefault,
     R.map(R.propEq(R.__, 'key', R.__), ['F5','F11','F12'])
   );
+
+  initStage();
+  addEventListener('resize', initStage);
 }
 
 main();

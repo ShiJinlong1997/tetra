@@ -2,6 +2,8 @@ import { useDrag } from '../hook/use-drag.js';
 import { isAtEdge, ColEdge } from '../const.js';
 
 export function useRotate(context) {
+  const elem = document.querySelector(`[data-code="ArrowUp"]`);
+
   // --- interval start ---
 
   /** 方块旋转 */
@@ -32,11 +34,8 @@ export function useRotate(context) {
       R.tap(angle => (context.state.angle = angle)),
       context.state.inferPrevAngle,
     )(nextAngle);
-    // addClass(['show'], context.state);
-    // render(context.state);
-    context.freeze(context.isNeedTakenFalled(context.state.indexList));
-    context.addScore();
-    context.gameOver();
+    
+    context.onChange();
   }
 
   context.intervalStore.add(
@@ -66,13 +65,17 @@ export function useRotate(context) {
     // 抬起再接受下一次按下
     context.addKeyDown(
       () => R.propEq('keyup', 'status', context.operateMap.ArrowDown),
-      () => (context.operateMap.ArrowUp.status = 'keydown'),
+      () => {
+        context.onKeyDown(elem);
+        context.operateMap.ArrowUp.status = 'keydown';
+      },
       ['ArrowUp']
     );
 
     context.addKeyUp(
       R.T,
       () => {
+        context.onKeyUp(elem);
         context.operateMap.ArrowUp.status = 'keyup';
         context.operateMap.ArrowUp.accept = true;
       },
@@ -82,13 +85,17 @@ export function useRotate(context) {
 
   function addPointerListenere() {
     const listenerMap = useDrag({
-      elem: document.querySelector(`[data-code="ArrowUp"]`),
+      elem,
       pred: () => R.propEq('keyup', 'status', context.operateMap.ArrowDown),
     });
 
-    listenerMap.pointerdown = () => (context.operateMap.ArrowUp.status = 'keydown');
+    listenerMap.pointerdown = () => {
+      context.onPointerDown(elem);
+      context.operateMap.ArrowUp.status = 'keydown';
+    };
     
     listenerMap.pointerup = () => {
+      context.onPointerUp(elem);
       context.operateMap.ArrowUp.status = 'keyup';
       context.operateMap.ArrowUp.accept = true;
       context.intervalStore.reset();

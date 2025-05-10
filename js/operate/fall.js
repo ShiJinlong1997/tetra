@@ -2,6 +2,8 @@ import { useDrag } from '../hook/use-drag.js';
 
 
 export function useFall(context) {
+  const elem = document.querySelector(`[data-code="ArrowDown"]`);
+
   // --- interval start ---
 
   const autoFall = R.when(
@@ -10,12 +12,8 @@ export function useFall(context) {
       // 若下一行能去则去
       // 否则固化
       R.ifElse(
-        context.isNeedTakenFalled,
-        () => {
-          context.freeze(true);
-          context.addScore();
-          context.gameOver();
-        },
+        context.isNeedTakenFallen,
+        context.onTaken,
         () => (context.state.row += 1),
       )(context.state.indexList);
     }
@@ -34,9 +32,7 @@ export function useFall(context) {
       // 不同于自动下落
       // 主动下落后判断是否需要固化
       context.state.row += 1;
-      context.freeze(context.isNeedTakenFalled(context.state.indexList));
-      context.addScore();
-      context.gameOver();
+      context.onChange();
     }
   );
 
@@ -51,13 +47,17 @@ export function useFall(context) {
     // 抬起即失效
     context.addKeyDown(
       () => R.propEq('keyup', 'status', context.operateMap.ArrowUp),
-      () => (context.operateMap.ArrowDown.status = 'keydown'),
+      () => {
+        context.onKeyDown(elem);
+        context.operateMap.ArrowDown.status = 'keydown';
+      },
       ['ArrowDown']
     );
 
     context.addKeyUp(
       R.T,
       () => {
+        context.onKeyUp(elem);
         context.operateMap.ArrowDown.status = 'keyup';
         manualFallInterval.reset();
       },
@@ -67,13 +67,17 @@ export function useFall(context) {
 
   function addPointerListener() {
     const listenerMap = useDrag({
-      elem: document.querySelector(`[data-code="ArrowDown"]`),
+      elem,
       pred: () => R.propEq('keyup', 'status', context.operateMap.ArrowUp),
     });
 
-    listenerMap.pointerdown = () => (context.operateMap.ArrowDown.status = 'keydown');
+    listenerMap.pointerdown = () => {
+      context.onPointerDown(elem);
+      context.operateMap.ArrowDown.status = 'keydown'
+    };
     
     listenerMap.pointerup = () => {
+      context.onPointerUp(elem);
       context.operateMap.ArrowDown.status = 'keyup';
       manualFallInterval.reset();
     };

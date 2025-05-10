@@ -4,6 +4,9 @@ import { useDrag } from '../hook/use-drag.js';
 import { Sign } from '../util/index.js';
 
 export function useMove(context) {
+  const leftBtn = document.querySelector(`[data-code="ArrowLeft"]`);
+  const rightBtn = document.querySelector(`[data-code="ArrowRight"]`);
+
   // --- interval start ---
 
   /**
@@ -28,9 +31,7 @@ export function useMove(context) {
       () => {
         context.intervalStore.reset();
         move('left');
-        context.freeze(context.isNeedTakenFalled(context.state.indexList));
-        context.addScore();
-        context.gameOver();
+        context.onChange();
       },
     ),
     100,
@@ -43,9 +44,7 @@ export function useMove(context) {
       () => {
         context.intervalStore.reset();
         move('right');
-        context.freeze(context.isNeedTakenFalled(context.state.indexList));
-        context.addScore();
-        context.gameOver();
+        context.onChange();
       },
     ),
     100,
@@ -61,13 +60,17 @@ export function useMove(context) {
     // 抬起即失效
     context.addKeyDown(
       () => R.propEq('keyup', 'status', context.operateMap.ArrowRight),
-      () => (context.operateMap.ArrowLeft.status = 'keydown'),
+      () => {
+        context.onKeyDown(leftBtn);
+        context.operateMap.ArrowLeft.status = 'keydown';
+      },
       ['ArrowLeft']
     );
 
     context.addKeyUp(
       R.T,
       () => {
+        context.onKeyUp(leftBtn);
         context.operateMap.ArrowLeft.status = 'keyup';
         moveLeftInterval.reset();
       },
@@ -76,13 +79,17 @@ export function useMove(context) {
 
     context.addKeyDown(
       () => R.propEq('keyup', 'status', context.operateMap.ArrowLeft),
-      () => (context.operateMap.ArrowRight.status = 'keydown'),
+      () => {
+        context.onKeyDown(rightBtn);
+        context.operateMap.ArrowRight.status = 'keydown';
+      },
       ['ArrowRight']
     );
   
     context.addKeyUp(
       R.T,
       () => {
+        context.onKeyUp(rightBtn);
         context.operateMap.ArrowRight.status = 'keyup';
         moveRightInterval.reset();
       },
@@ -91,33 +98,41 @@ export function useMove(context) {
   }
 
   function addPointerListener() {
-    (() => {
+    ((elem) => {
       const listenerMap = useDrag({
-        elem: document.querySelector(`[data-code="ArrowLeft"]`),
+        elem,
         pred: () => R.propEq('keyup', 'status', context.operateMap.ArrowRight),
       });
 
-      listenerMap.pointerdown = () => (context.operateMap.ArrowLeft.status = 'keydown');
+      listenerMap.pointerdown = () => {
+        context.onPointerDown(elem);
+        context.operateMap.ArrowLeft.status = 'keydown';
+      };
 
       listenerMap.pointerup = () => {
+        context.onPointerUp(elem);
         context.operateMap.ArrowLeft.status = 'keyup';
         moveLeftInterval.reset();
       };
-    })();
+    })(leftBtn);
 
-    (() => {
+    ((elem) => {
       const listenerMap = useDrag({
-        elem: document.querySelector(`[data-code="ArrowRight"]`),
+        elem,
         pred: () => R.propEq('keyup', 'status', context.operateMap.ArrowLeft),
       });
   
-      listenerMap.pointerdown = () => (context.operateMap.ArrowRight.status = 'keydown');
+      listenerMap.pointerdown = () => {
+        context.onPointerDown(elem);
+        context.operateMap.ArrowRight.status = 'keydown';
+      };
 
       listenerMap.pointerup = () => {
+        context.onPointerUp(elem);
         context.operateMap.ArrowRight.status = 'keyup';
         moveRightInterval.reset();
       };
-    })();
+    })(rightBtn);
   }
 
   addKeyListener();
